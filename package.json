@@ -1,0 +1,22 @@
+{
+  "name": "massive-operations-webjob",
+  "description": "Webjob para leer acciones desde un azure storage",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Parsimotion/massive-operations-webjob"
+  },
+  "version": "0.0.1",
+  "main": "main.js",
+  "dependencies": {
+    "coffee-script": "^1.8.0",
+    "lodash": "^3.6.0",
+    "azure-storage": "~0.6.0",
+    "bluebird": "~2.10.1"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "start": "node main.js"
+  }
+}
