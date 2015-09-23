@@ -1,27 +1,8 @@
 azure = require("azure-storage")
 Promise = require("bluebird")
 Promise.promisifyAll azure
-request = require("request")
+controller = require("./messagesCtrl")
 
-module.exports = =>
-  azure
-    .createQueueService process.env.STORAGE_NAME, process.env.STORAGE_KEY
-    .getMessagesAsync process.env.QUEUE_NAME
-    .then (messages) ->
-      message = JSON.parse messages[0][0].messagetext
-      requestMessage =
-        method: message.method
-        url: "URL" + message.resource
-        headers: message.headers
-        body: message.body
-
-      request requestMessage, (err, resp, body) ->
-        console.log resp
-        console.log body
-        throw err if err
-
-
-    .catch (err) ->
-      console.log "ERROR"
-      console.log err
-
+module.exports = (storageName, storageKey, baseUrl) ->
+  queueService = azure.createQueueService storageName, storageKey
+  controller queueService, baseUrl
