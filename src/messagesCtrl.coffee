@@ -5,6 +5,7 @@ errorExit = (err) ->
   process.exit 1
 
 doneExit = ->
+  console.log "PROCESS DONE"
   process.exit 0
 
 module.exports = (queueService, baseUrl) ->
@@ -23,7 +24,7 @@ module.exports = (queueService, baseUrl) ->
 
         request requestMessage, (err) ->
           throw err if err
-          queueService.deleteMessageAsync(queueName, message.messageid, message.popreceipt)
+          queueService.deleteMessageAsync(queue, message.messageid, message.popreceipt)
           .then -> doneExit()
           .catch (err) ->
             console.log "DELETE ERROR"
