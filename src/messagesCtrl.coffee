@@ -1,7 +1,14 @@
 request = require("request")
 
+errorExit = (err) ->
+  console.log err
+  process.exit 1
+
+doneExit = ->
+  process.exit 0
+
 module.exports = (queueService, baseUrl) ->
-  proccessMessage: (queue) ->
+  processMessage: (queue) ->
     queueService
       .getMessagesAsync queue
       .then (messages) ->
@@ -14,11 +21,14 @@ module.exports = (queueService, baseUrl) ->
           headers: messageText.headers
           body: messageText.body
 
-        request requestMessage, (err, resp, body) ->
+        request requestMessage, (err) ->
           throw err if err
-          console.log body
-          console.log resp
+          queueService.deleteMessageAsync(queueName, message.messageid, message.popreceipt)
+          .then -> doneExit()
+          .catch (err) ->
+            console.log "DELETE ERROR"
+            errorExit err
 
       .catch (err) ->
-        console.log "ERROR"
-        console.log err
+        console.log "PROCESS ERROR"
+        errorExit err
