@@ -1,6 +1,6 @@
 {
   "name": "massive-operations-webjob",
-  "description": "Webjob para leer acciones desde un azure storage",
+  "description": "Webjob para operaciones masivas que consume mensajes desde azure storage",
   "repository": {
     "type": "git",
     "url": "git://github.com/Parsimotion/massive-operations-webjob"

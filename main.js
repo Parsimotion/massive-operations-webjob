@@ -1,3 +1,4 @@
 require("coffee-script/register");
+var webjob = require("./src/webjob.coffee");
 
-require("./src/server.coffee")();
+module.exports = webjob;
