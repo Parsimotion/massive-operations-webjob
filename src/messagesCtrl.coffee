@@ -1,4 +1,5 @@
-request = require("request")
+Promise = require("bluebird")
+requestAsync = Promise.promisify require("request")
 
 errorExit = (err) ->
   console.log err
@@ -14,17 +15,17 @@ module.exports = (queueService, baseUrl) ->
       .getMessagesAsync queue
       .then (messages) ->
         message = messages[0][0]
+        # console.log message
         messageText = JSON.parse message.messagetext
-        console.log message
         requestMessage =
           method: messageText.method
           url: baseUrl + messageText.resource
           headers: messageText.headers
           body: messageText.body
 
-        request requestMessage, (err) ->
-          throw err if err
-          queueService.deleteMessageAsync(queue, message.messageid, message.popreceipt)
+        requestAsync requestMessage
+        .then (response) ->
+          queueService.deleteMessageAsync queue, message.messageid, message.popreceipt
           .then -> doneExit()
           .catch (err) ->
             console.log "DELETE ERROR"
