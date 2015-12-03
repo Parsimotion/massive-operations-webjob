@@ -16,7 +16,7 @@ queueServiceMock =
       messageid: 'c93c90eb-40ee-4ced-8b95-dff8055fe66e'
       insertiontime: 'Wed, 02 Dec 2015 18:32:29 GMT'
       expirationtime: 'Wed, 09 Dec 2015 18:32:29 GMT'
-      dequeuecount: '4'
+      dequeuecount: '0'
       popreceipt: 'AgAAAAMAAAAAAAAAA/2QGTAt0QE='
       timenextvisible: 'Wed, 02 Dec 2015 18:34:38 GMT'
       messagetext: JSON.stringify message
