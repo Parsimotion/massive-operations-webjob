@@ -1,6 +1,5 @@
 require("should")
 include = require("include")
-Promise = require("Bluebird")
 simple = require('simple-mock')
 nock = require('nock')
 
@@ -38,7 +37,7 @@ describe "MessagesCtrl", ->
     .get message.resource
     .reply 200, [ id: 0 ]
 
-  describe "when process message", ->
+  describe "when process message should", ->
     beforeEach ->
       ctrl.processMessage queue
 
@@ -50,3 +49,11 @@ describe "MessagesCtrl", ->
 
     it "delete the message from storage", ->
       queueServiceMock.deleteMessageAsync.called.should.be.true
+
+  it "should finish with error when fail processing message", (done) ->
+    nock.cleanAll()
+
+    ctrl
+    .processMessage queue
+    .then done
+    .catch -> done()

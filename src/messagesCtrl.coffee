@@ -7,7 +7,7 @@ module.exports = (queueService, baseUrl) ->
       .getMessagesAsync queue
       .then (messages) ->
         message = messages[0][0]
-        # console.log message
+        console.log message
         messageText = JSON.parse message.messagetext
         requestMessage =
           method: messageText.method
@@ -18,10 +18,7 @@ module.exports = (queueService, baseUrl) ->
         requestAsync requestMessage
         .then (response) ->
           queueService.deleteMessageAsync queue, message.messageid, message.popreceipt
-          .catch (err) ->
-            console.error "DELETE FAIL"
-            throw err
 
       .catch (err) ->
-        console.error "POCESS FAIL"
+        console.error "PROCESS FAIL"
         throw err
