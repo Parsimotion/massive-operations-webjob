@@ -1,14 +1,6 @@
 Promise = require("bluebird")
 requestAsync = Promise.promisify require("request")
 
-errorExit = (err) ->
-  console.log err
-  process.exit 1
-
-doneExit = ->
-  console.log "PROCESS DONE"
-  process.exit 0
-
 module.exports = (queueService, baseUrl) ->
   processMessage: (queue) ->
     queueService
@@ -26,11 +18,10 @@ module.exports = (queueService, baseUrl) ->
         requestAsync requestMessage
         .then (response) ->
           queueService.deleteMessageAsync queue, message.messageid, message.popreceipt
-          .then -> doneExit()
           .catch (err) ->
-            console.log "DELETE ERROR"
-            errorExit err
+            console.error "DELETE FAIL"
+            throw err
 
       .catch (err) ->
-        console.log "PROCESS ERROR"
-        errorExit err
+        console.error "POCESS FAIL"
+        throw err
