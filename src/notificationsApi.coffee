@@ -10,13 +10,11 @@ module.exports =
       url: baseApi + "/jobs/#{jobId}/operations"
       headers:
         'content-type': 'application/json'
-      body:
+      body: JSON.stringify
         success: true
         statusCode: response.statusCode
 
     requestAsync requestMessage
-    .then (res) -> console.log res
-    .catch (err) -> console.error err
 
   fail: (jobId, response) ->
     requestMessage =
@@ -24,11 +22,9 @@ module.exports =
       url: baseApi + "/jobs/#{jobId}/operations"
       headers:
         'content-type': 'application/json'
-      body:
+      body: JSON.stringify
         success: false
         statusCode: response.statusCode
         message: response
 
     requestAsync requestMessage
-    .then (res) -> console.log res
-    .catch (err) -> console.error err
