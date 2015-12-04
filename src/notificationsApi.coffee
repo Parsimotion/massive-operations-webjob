@@ -10,10 +10,11 @@ module.exports =
       statusCode: response.statusCode
 
   fail: (jobId, response) ->
+    console.log response.body
     @_makeRequest jobId,
       success: false
       statusCode: response.statusCode
-      message: response
+      message: response.body
 
   _makeRequest: (jobId, body) ->
     requestMessage =
@@ -25,3 +26,4 @@ module.exports =
         JSON.stringify body
 
     requestAsync requestMessage
+    # .then (res) -> console.log res
