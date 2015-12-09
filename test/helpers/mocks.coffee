@@ -2,7 +2,7 @@ require("should")
 nock = require('nock')
 mock = require('mock-require')
 simple = require('simple-mock')
-
+simple.Promise = require("bluebird")
 
 notificationsApiUrl = "http://notifications-api-mock.net"
 
