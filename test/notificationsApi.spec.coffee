@@ -33,12 +33,12 @@ describe "NotificationsApi", ->
     failureReq = nocking
       success: false
       statusCode: failureRes.statusCode
-      message: failureRes
+      message: failureRes.body
 
   it "on success should send the operation with success = true", ->
     notificationsApi.success jobId, successRes
     .then -> successReq.done()
 
-  it "on failure should send the operation with success = false and the response", ->
+  it "on failure should send the operation with success = false and response body", ->
     notificationsApi.fail jobId, failureRes
     .then -> failureReq.done()

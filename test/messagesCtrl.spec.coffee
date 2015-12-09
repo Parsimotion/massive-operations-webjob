@@ -1,3 +1,6 @@
+notificationsApiUrl = "http://notifications-api-mock.net"
+process.env.NotificationsApiUrl = notificationsApiUrl
+
 require("should")
 include = require("include")
 simple = require('simple-mock')
@@ -8,7 +11,9 @@ queue = "massiveoperations"
 message =
   method: "GET"
   resource: "/resource"
-  headers: "Content-Type": "application/json"
+  headers:
+    "Content-Type": "application/json"
+    Job: "0"
 
 queueServiceMock =
   getMessagesAsync: simple.stub().resolveWith [
@@ -30,25 +35,59 @@ queueServiceMock =
 
 ctrl = include("src/messagesCtrl") queueServiceMock, baseApi
 req = null
+notification = null
 
 describe "MessagesCtrl", ->
-  beforeEach ->
-    req = nock baseApi
-    .get message.resource
-    .reply 200, [ id: 0 ]
 
-  describe "when process message should", ->
+  describe "when process message", ->
     beforeEach ->
+      req = nock baseApi
+      .get message.resource
+      .reply 200, [ id: 0 ]
+
+      notification = nock notificationsApiUrl
+      .post "/jobs/#{message.headers.Job}/operations",
+        success: true
+        statusCode: 200
+      .reply 200
+
       ctrl.processMessage queue
 
-    it "get the message from storage", ->
+    it "should get the message from storage", ->
       queueServiceMock.getMessagesAsync.called.should.be.true
 
-    it "send message request to base api", ->
+    it "should send message request to base api", ->
       req.done()
 
-    it "delete the message from storage", ->
-      queueServiceMock.deleteMessageAsync.called.should.be.true
+    describe "and request response success", ->
+
+      it "should delete the message from storage", ->
+        queueServiceMock.deleteMessageAsync.called.should.be.true
+
+      it "should notify to NotificationsApi", ->
+        notification.done()
+
+    describe "and request response fail", ->
+      beforeEach ->
+        nock.cleanAll()
+
+        errorMessage = JSON.stringify error: "Resource doesnt exist"
+
+        nock baseApi
+        .get message.resource
+        .reply 404, errorMessage
+
+        notification = nock notificationsApiUrl
+        .post "/jobs/#{message.headers.Job}/operations",
+          success: false
+          statusCode: 404
+          message: errorMessage
+        .reply 200
+
+        ctrl.processMessage queue
+
+      it "should notify to NotificationsApi", ->
+        notification.done()
 
   it "should finish with error when fail processing message", (done) ->
     nock.cleanAll()
