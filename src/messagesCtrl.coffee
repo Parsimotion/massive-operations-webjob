@@ -23,19 +23,22 @@ module.exports = (queueService, baseUrl) ->
           body: messageText.body
 
         requestAsync requestMessage
-        .then (response) =>
+        .then ([response]) =>
           jobId = messageText.headers.Job
-          if isSuccess response[0].statusCode
-            @_requestSuccess queue, message, response[0], jobId
+          if isSuccess response.statusCode
+            @_requestSuccess queue, message, response, jobId
           else
-            @_requestFail queue, message, response[0], jobId
+            @_requestFail queue, message, response, jobId
 
   _requestSuccess: (queue, message, response, jobId) ->
     notificationsApi.success jobId, response
-    queueService.deleteMessageAsync queue, message.messageid, message.popreceipt
+    @_deleteMessage queue, message
 
   _requestFail: (queue, message, response, jobId) ->
     if Number.parseInt(message.dequeuecount) >= maxProcessCount
       notificationsApi.fail jobId, response
       queueService.createMessageAsync queue + "-poison", message.messagetext
-      .then -> queueService.deleteMessageAsync queue, message.messageid, message.popreceipt
+      .then => @_deleteMessage queue, message
+
+  _deleteMessage: (queue, message) ->
+    queueService.deleteMessageAsync queue, message.messageid, message.popreceipt
