@@ -1,7 +1,8 @@
+config = require('./config')
 Promise = require("bluebird")
 requestAsync = Promise.promisify require("request")
 
-baseApi = process.env.NotificationsApiUrl
+baseApi = config.notificationsApiUrl
 
 module.exports =
   success: (jobId, response) ->
@@ -10,7 +11,6 @@ module.exports =
       statusCode: response.statusCode
 
   fail: (jobId, response) ->
-    console.log response.body
     @_makeRequest jobId,
       success: false
       statusCode: response.statusCode
@@ -26,4 +26,3 @@ module.exports =
         JSON.stringify body
 
     requestAsync requestMessage
-    # .then (res) -> console.log res

@@ -1,8 +1,9 @@
+config = require('./config')
 Promise = require("bluebird")
 requestAsync = Promise.promisify require("request")
 notificationsApi = require('./notificationsApi')
 
-maxProcessCount = process.env.MaxProcessMessageCount
+maxProcessCount = config.maxProcessMessageCount
 
 isSuccess = (code) ->
   /2../.test code

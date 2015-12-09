@@ -1,14 +1,10 @@
-notificationsApiUrl = "http://notifications-api-mock.net"
-process.env.NotificationsApiUrl = notificationsApiUrl
-process.env.MaxProcessMessageCount = 3
-
-require("should")
-include = require("include")
-simple = require('simple-mock')
 nock = require('nock')
+mocks = require('./helpers/mocks')
+include = require("include")
+MessagesCtrl = include("src/messagesCtrl")
 
-baseApi = "http://base-url.com/api"
 queue = "massiveoperations"
+baseApi = "http://base-url.com/api"
 message =
   method: "GET"
   resource: "/resource"
@@ -16,36 +12,15 @@ message =
     "Content-Type": "application/json"
     Job: "0"
 
-
-queueServiceMock = null
-notification = null
-ctrl = null
 req = null
+ctrl = null
+notification = null
+queueServiceMock = null
 
 describe "MessagesCtrl", ->
   beforeEach ->
-    queueServiceMock =
-      getMessagesAsync: simple.stub().resolveWith [
-        [
-          messageid: 'c93c90eb-40ee-4ced-8b95-dff8055fe66e'
-          insertiontime: 'Wed, 02 Dec 2015 18:32:29 GMT'
-          expirationtime: 'Wed, 09 Dec 2015 18:32:29 GMT'
-          dequeuecount: '100'
-          popreceipt: 'AgAAAAMAAAAAAAAAA/2QGTAt0QE='
-          timenextvisible: 'Wed, 02 Dec 2015 18:34:38 GMT'
-          messagetext: JSON.stringify message
-        ]
-      ]
-
-      createMessageAsync: simple.stub().resolveWith
-        isSuccessful: true
-        statusCode: 201
-
-      deleteMessageAsync: simple.stub().resolveWith
-        isSuccessful: true
-        statusCode: 204
-
-    ctrl = include("src/messagesCtrl") queueServiceMock, baseApi
+    queueServiceMock = mocks.createQueueService message
+    ctrl = MessagesCtrl queueServiceMock, baseApi
 
   describe "when process message", ->
     beforeEach ->
@@ -53,16 +28,14 @@ describe "MessagesCtrl", ->
       .get message.resource
       .reply 200, [ id: 0 ]
 
-      notification = nock notificationsApiUrl
-      .post "/jobs/#{message.headers.Job}/operations",
+      notification = mocks.expectNotification message.headers.Job,
         success: true
         statusCode: 200
-      .reply 200
 
       ctrl.processMessage queue
 
     it "should get the message from storage", ->
-      queueServiceMock.getMessagesAsync.called.should.be.true
+      queueServiceMock.shouldGetMessages queue
 
     it "should send message request to base api", ->
       req.done()
@@ -70,7 +43,7 @@ describe "MessagesCtrl", ->
     describe "and request response success", ->
 
       it "should delete the message from storage", ->
-        queueServiceMock.deleteMessageAsync.called.should.be.true
+        queueServiceMock.shouldDeleteMessage queue
 
       it "should notify to NotificationsApi", ->
         notification.done()
@@ -85,12 +58,10 @@ describe "MessagesCtrl", ->
         .get message.resource
         .reply 404, errorMessage
 
-        notification = nock notificationsApiUrl
-        .post "/jobs/#{message.headers.Job}/operations",
+        notification = mocks.expectNotification message.headers.Job,
           success: false
           statusCode: 404
           message: errorMessage
-        .reply 200
 
         ctrl.processMessage queue
 
@@ -98,7 +69,5 @@ describe "MessagesCtrl", ->
         notification.done()
 
       it "should move to poison queue", ->
-        queueServiceMock.createMessageAsync.lastCall.args[0].should.be.eql queue + "-poison"
-        queueServiceMock.createMessageAsync.lastCall.args[1].should.be.eql JSON.stringify message
-
-        queueServiceMock.deleteMessageAsync.lastCall.args[0].should.be.eql queue
+        queueServiceMock.shouldCreateMessage queue + "-poison", message
+        queueServiceMock.shouldDeleteMessage queue
