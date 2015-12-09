@@ -1,3 +1,4 @@
+_ = require('lodash')
 config = require('./config')
 Promise = require("bluebird")
 requestAsync = Promise.promisify require("request")
@@ -36,7 +37,7 @@ module.exports = (queueService, baseUrl) ->
       deleteMessage: @_deleteMessage queue, message
 
   _requestFail: (queue, message, response, jobId) ->
-    if Number.parseInt(message.dequeuecount) >= maxProcessCount
+    if _.parseInt(message.dequeuecount) >= maxProcessCount
       notification = notificationsApi.fail jobId, response
       moveMessage = queueService
       .createMessageAsync queue + "-poison", message.messagetext
