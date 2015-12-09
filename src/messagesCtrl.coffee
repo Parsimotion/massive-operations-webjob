@@ -31,14 +31,18 @@ module.exports = (queueService, baseUrl) ->
             @_requestFail queue, message, response, jobId
 
   _requestSuccess: (queue, message, response, jobId) ->
-    notificationsApi.success jobId, response
-    @_deleteMessage queue, message
+    Promise.props
+      notification: notificationsApi.success jobId, response
+      deleteMessage: @_deleteMessage queue, message
 
   _requestFail: (queue, message, response, jobId) ->
     if Number.parseInt(message.dequeuecount) >= maxProcessCount
-      notificationsApi.fail jobId, response
-      queueService.createMessageAsync queue + "-poison", message.messagetext
+      notification = notificationsApi.fail jobId, response
+      moveMessage = queueService
+      .createMessageAsync queue + "-poison", message.messagetext
       .then => @_deleteMessage queue, message
+
+      Promise.props {notification, moveMessage}
 
   _deleteMessage: (queue, message) ->
     queueService.deleteMessageAsync queue, message.messageid, message.popreceipt
