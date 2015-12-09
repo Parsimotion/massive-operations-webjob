@@ -29,6 +29,10 @@ queueServiceMock =
     ]
   ]
 
+  createMessageAsync: simple.stub().resolveWith
+    isSuccessful: true
+    statusCode: 201
+
   deleteMessageAsync: simple.stub().resolveWith
     isSuccessful: true
     statusCode: 204
