@@ -16,33 +16,36 @@ message =
     "Content-Type": "application/json"
     Job: "0"
 
-queueServiceMock =
-  getMessagesAsync: simple.stub().resolveWith [
-    [
-      messageid: 'c93c90eb-40ee-4ced-8b95-dff8055fe66e'
-      insertiontime: 'Wed, 02 Dec 2015 18:32:29 GMT'
-      expirationtime: 'Wed, 09 Dec 2015 18:32:29 GMT'
-      dequeuecount: '100'
-      popreceipt: 'AgAAAAMAAAAAAAAAA/2QGTAt0QE='
-      timenextvisible: 'Wed, 02 Dec 2015 18:34:38 GMT'
-      messagetext: JSON.stringify message
-    ]
-  ]
 
-  createMessageAsync: simple.stub().resolveWith
-    isSuccessful: true
-    statusCode: 201
-
-  deleteMessageAsync: simple.stub().resolveWith
-    isSuccessful: true
-    statusCode: 204
-
-
-ctrl = include("src/messagesCtrl") queueServiceMock, baseApi
-req = null
+queueServiceMock = null
 notification = null
+ctrl = null
+req = null
 
 describe "MessagesCtrl", ->
+  beforeEach ->
+    queueServiceMock =
+      getMessagesAsync: simple.stub().resolveWith [
+        [
+          messageid: 'c93c90eb-40ee-4ced-8b95-dff8055fe66e'
+          insertiontime: 'Wed, 02 Dec 2015 18:32:29 GMT'
+          expirationtime: 'Wed, 09 Dec 2015 18:32:29 GMT'
+          dequeuecount: '100'
+          popreceipt: 'AgAAAAMAAAAAAAAAA/2QGTAt0QE='
+          timenextvisible: 'Wed, 02 Dec 2015 18:34:38 GMT'
+          messagetext: JSON.stringify message
+        ]
+      ]
+
+      createMessageAsync: simple.stub().resolveWith
+        isSuccessful: true
+        statusCode: 201
+
+      deleteMessageAsync: simple.stub().resolveWith
+        isSuccessful: true
+        statusCode: 204
+
+    ctrl = include("src/messagesCtrl") queueServiceMock, baseApi
 
   describe "when process message", ->
     beforeEach ->
@@ -94,10 +97,8 @@ describe "MessagesCtrl", ->
       it "should notify to NotificationsApi", ->
         notification.done()
 
-  it "should finish with error when fail processing message", (done) ->
-    nock.cleanAll()
+      it "should move to poison queue", ->
+        queueServiceMock.createMessageAsync.lastCall.args[0].should.be.eql queue + "-poison"
+        queueServiceMock.createMessageAsync.lastCall.args[1].should.be.eql JSON.stringify message
 
-    ctrl
-    .processMessage queue
-    .then done
-    .catch -> done()
+        queueServiceMock.deleteMessageAsync.lastCall.args[0].should.be.eql queue

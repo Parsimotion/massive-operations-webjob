@@ -36,5 +36,5 @@ module.exports = (queueService, baseUrl) ->
   _requestFail: (queue, message, response, jobId) ->
     if Number.parseInt(message.dequeuecount) >= maxProcessCount
       notificationsApi.fail jobId, response
-      queueService.createMessageAsync queue + "-poison", message.messageText
+      queueService.createMessageAsync queue + "-poison", message.messagetext
       .then -> queueService.deleteMessageAsync queue, message.messageid, message.popreceipt
