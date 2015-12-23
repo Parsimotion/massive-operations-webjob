@@ -1,35 +1,49 @@
-request = require("request")
+_ = require('lodash')
+config = require('./config')
+Promise = require("bluebird")
+requestAsync = Promise.promisify require("request")
+notificationsApi = require('./notificationsApi')
 
-errorExit = (err) ->
-  console.log err
-  process.exit 1
+maxProcessCount = config.maxProcessMessageCount
 
-doneExit = ->
-  console.log "PROCESS DONE"
-  process.exit 0
+isSuccess = (code) ->
+  /2../.test code
 
 module.exports = (queueService, baseUrl) ->
   processMessage: (queue) ->
     queueService
       .getMessagesAsync queue
-      .then (messages) ->
+      .then (messages) =>
         message = messages[0][0]
+        # console.log message
         messageText = JSON.parse message.messagetext
-        console.log message
         requestMessage =
           method: messageText.method
           url: baseUrl + messageText.resource
           headers: messageText.headers
           body: messageText.body
 
-        request requestMessage, (err) ->
-          throw err if err
-          queueService.deleteMessageAsync(queue, message.messageid, message.popreceipt)
-          .then -> doneExit()
-          .catch (err) ->
-            console.log "DELETE ERROR"
-            errorExit err
+        requestAsync requestMessage
+        .then ([response]) =>
+          jobId = messageText.headers.Job
+          if isSuccess response.statusCode
+            @_requestSuccess queue, message, response, jobId
+          else
+            @_requestFail queue, message, response, jobId
 
-      .catch (err) ->
-        console.log "PROCESS ERROR"
-        errorExit err
+  _requestSuccess: (queue, message, response, jobId) ->
+    Promise.props
+      notification: notificationsApi.success jobId, response
+      deleteMessage: @_deleteMessage queue, message
+
+  _requestFail: (queue, message, response, jobId) ->
+    if _.parseInt(message.dequeuecount) >= maxProcessCount
+      notification = notificationsApi.fail jobId, response
+      moveMessage = queueService
+      .createMessageAsync queue + "-poison", message.messagetext
+      .then => @_deleteMessage queue, message
+
+      Promise.props {notification, moveMessage}
+
+  _deleteMessage: (queue, message) ->
+    queueService.deleteMessageAsync queue, message.messageid, message.popreceipt
