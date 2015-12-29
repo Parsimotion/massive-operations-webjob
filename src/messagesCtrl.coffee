@@ -15,7 +15,7 @@ module.exports = (queueService, baseUrl) ->
       .getMessagesAsync queue
       .then (messages) =>
         message = messages[0][0]
-        # console.log message
+        console.log message
         messageText = JSON.parse message.messagetext
         requestMessage =
           method: messageText.method
@@ -25,18 +25,20 @@ module.exports = (queueService, baseUrl) ->
 
         requestAsync requestMessage
         .then ([response]) =>
-          jobId = messageText.headers.Job
+          jobId = messageText.headers.job
           if isSuccess response.statusCode
             @_requestSuccess queue, message, response, jobId
           else
             @_requestFail queue, message, response, jobId
 
   _requestSuccess: (queue, message, response, jobId) ->
+    console.log "SUCCESS"
     Promise.props
       notification: notificationsApi.success jobId, response
       deleteMessage: @_deleteMessage queue, message
 
   _requestFail: (queue, message, response, jobId) ->
+    console.log "FAILURE"
     if _.parseInt(message.dequeuecount) >= maxProcessCount
       notification = notificationsApi.fail jobId, response
       moveMessage = queueService
