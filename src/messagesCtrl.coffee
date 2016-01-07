@@ -15,6 +15,7 @@ module.exports = (queueService, baseUrl) ->
       .getMessagesAsync queue
       .then (messages) =>
         message = messages[0][0]
+        return if not message?
         console.log message
         messageText = JSON.parse message.messagetext
         requestMessage =
