@@ -26,3 +26,5 @@ module.exports =
         JSON.stringify body
 
     requestAsync requestMessage
+    .then -> console.log "NOTIFICATION OK"
+    .catch (err) -> console.log err
