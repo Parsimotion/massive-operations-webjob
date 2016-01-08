@@ -20,7 +20,7 @@
   },
   "scripts": {
     "start": "node main.js",
-    "test": "mocha --compilers coffee:coffee-script/register"
+    "test": "mocha --compilers coffee:coffee-script/register --require src/globals"
   },
   "devDependencies": {
     "mocha": "^2.3.4",

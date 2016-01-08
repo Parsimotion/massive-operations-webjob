@@ -12,10 +12,15 @@ mock "../../src/config",
 
 
 module.exports =
-  expectNotification: (jobId, notification) ->
-    resource = "/jobs/#{jobId}/operations"
+  jobId: 0
+  accessToken: "Bearer 1234567890"
 
-    nock notificationsApiUrl
+  expectNotification: (notification) ->
+    resource = "/jobs/#{@jobId}/operations"
+    headers =
+      'authorization': @accessToken
+
+    nock notificationsApiUrl, reqheaders: headers
     .post resource, notification
     .reply 200
 
