@@ -5,23 +5,24 @@ requestAsync = Promise.promisify require("request")
 baseApi = config.notificationsApiUrl
 
 module.exports =
-  success: (jobId, response) ->
-    @_makeRequest jobId,
+  success: (jobId, response, accessToken) ->
+    @_makeRequest jobId, accessToken,
       success: true
       statusCode: response.statusCode
 
-  fail: (jobId, response) ->
-    @_makeRequest jobId,
+  fail: (jobId, response, accessToken) ->
+    @_makeRequest jobId, accessToken,
       success: false
       statusCode: response.statusCode
       message: response.body
 
-  _makeRequest: (jobId, body) ->
+  _makeRequest: (jobId, accessToken, body) ->
     requestMessage =
       method: "POST"
       url: baseApi + "/jobs/#{jobId}/operations"
       headers:
         'content-type': 'application/json'
+        'Authorization': accessToken
       body:
         JSON.stringify body
 

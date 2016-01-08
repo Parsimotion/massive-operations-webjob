@@ -21,10 +21,11 @@ module.exports = (queueService, baseUrl) ->
         requestAsync requestMessage
         .then ([response]) =>
           jobId = messageText.headers.job
+          accessToken = messageText.headers.authorization
           if isSuccess response.statusCode
-            @_requestSuccess queue, message, response, jobId
+            @_requestSuccess queue, message, response, jobId, accessToken
           else
-            @_requestFail queue, message, response, jobId
+            @_requestFail queue, message, response, jobId, accessToken
 
   _createRequest: (messageText) ->
     method: messageText.method
@@ -32,16 +33,16 @@ module.exports = (queueService, baseUrl) ->
     headers: messageText.headers
     body: messageText.body
 
-  _requestSuccess: (queue, message, response, jobId) ->
+  _requestSuccess: (queue, message, response, jobId, accessToken) ->
     console.log "SUCCESS"
     Promise.props
-      notification: notificationsApi.success jobId, response
+      notification: notificationsApi.success jobId, response, accessToken
       deleteMessage: @_deleteMessage queue, message
 
-  _requestFail: (queue, message, response, jobId) ->
+  _requestFail: (queue, message, response, jobId, accessToken) ->
     console.log "FAILURE"
     if _.parseInt(message.dequeuecount) >= maxProcessCount
-      notification = notificationsApi.fail jobId, response
+      notification = notificationsApi.fail jobId, response, accessToken
       moveMessage = queueService
       .createMessageAsync queue + "-poison", message.messagetext
       .then => @_deleteMessage queue, message
