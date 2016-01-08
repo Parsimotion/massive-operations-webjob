@@ -12,10 +12,11 @@ mock "../../src/config",
 
 
 module.exports =
+  jobId: 0
   accessToken: "Bearer 1234567890"
 
-  expectNotification: (jobId, notification) ->
-    resource = "/jobs/#{jobId}/operations"
+  expectNotification: (notification) ->
+    resource = "/jobs/#{@jobId}/operations"
     headers =
       'authorization': @accessToken
 

@@ -9,7 +9,7 @@ message =
   resource: "/resource"
   headers:
     "content-type": "application/json"
-    "job": "0"
+    "job": mocks.jobId
     "authorization": mocks.accessToken
 
 req = null
@@ -28,7 +28,7 @@ describe "MessagesCtrl", ->
       .get message.resource
       .reply 200, [ id: 0 ]
 
-      notification = mocks.expectNotification message.headers.job,
+      notification = mocks.expectNotification
         success: true
         statusCode: 200
 
@@ -58,7 +58,7 @@ describe "MessagesCtrl", ->
         .get message.resource
         .reply 404, errorMessage
 
-        notification = mocks.expectNotification message.headers.job,
+        notification = mocks.expectNotification
           success: false
           statusCode: 404
           message: errorMessage

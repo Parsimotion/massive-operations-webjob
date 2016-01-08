@@ -2,7 +2,7 @@ _ = require('lodash')
 config = require('./config')
 Promise = require("bluebird")
 requestAsync = Promise.promisify require("request")
-notificationsApi = require('./notificationsApi')
+NotificationsApi = require('./notificationsApi')
 
 maxProcessCount = config.maxProcessMessageCount
 
@@ -19,14 +19,15 @@ module.exports = (queueService, baseUrl) ->
 
         jobId = messageText.headers.job
         accessToken = messageText.headers.authorization
+        notificationsApi = new NotificationsApi jobId, accessToken
 
         requestMessage = @_createRequest messageText
         requestAsync requestMessage
         .then ([response]) =>
           if isSuccess response.statusCode
-            @_requestSuccess queue, message, response, jobId, accessToken
+            @_requestSuccess queue, message, response, notificationsApi
           else
-            @_requestFail queue, message, response, jobId, accessToken
+            @_requestFail queue, message, response, notificationsApi
 
   _createRequest: (messageText) ->
     method: messageText.method
@@ -34,16 +35,16 @@ module.exports = (queueService, baseUrl) ->
     headers: messageText.headers
     body: messageText.body
 
-  _requestSuccess: (queue, message, response, jobId, accessToken) ->
+  _requestSuccess: (queue, message, response, notificationsApi) ->
     console.log "SUCCESS"
     Promise.props
-      notification: notificationsApi.success jobId, response, accessToken
+      notification: notificationsApi.success response
       deleteMessage: @_deleteMessage queue, message
 
-  _requestFail: (queue, message, response, jobId, accessToken) ->
+  _requestFail: (queue, message, response, notificationsApi) ->
     console.log "FAILURE"
     if _.parseInt(message.dequeuecount) >= maxProcessCount
-      notification = notificationsApi.fail jobId, response, accessToken
+      notification = notificationsApi.fail response
       moveMessage = queueService
       .createMessageAsync queue + "-poison", message.messagetext
       .then => @_deleteMessage queue, message
