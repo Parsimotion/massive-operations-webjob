@@ -6,9 +6,6 @@ notificationsApi = require('./notificationsApi')
 
 maxProcessCount = config.maxProcessMessageCount
 
-isSuccess = (code) ->
-  /2../.test code
-
 module.exports = (queueService, baseUrl) ->
   processMessage: (queue) ->
     queueService
@@ -16,13 +13,10 @@ module.exports = (queueService, baseUrl) ->
       .then (messages) =>
         message = messages[0][0]
         return if not message?
+
         console.log message
         messageText = JSON.parse message.messagetext
-        requestMessage =
-          method: messageText.method
-          url: baseUrl + messageText.resource
-          headers: messageText.headers
-          body: messageText.body
+        requestMessage = @_createRequest messageText
 
         requestAsync requestMessage
         .then ([response]) =>
@@ -31,6 +25,12 @@ module.exports = (queueService, baseUrl) ->
             @_requestSuccess queue, message, response, jobId
           else
             @_requestFail queue, message, response, jobId
+
+  _createRequest: (messageText) ->
+    method: messageText.method
+    url: baseUrl + messageText.resource
+    headers: messageText.headers
+    body: messageText.body
 
   _requestSuccess: (queue, message, response, jobId) ->
     console.log "SUCCESS"

@@ -1,3 +1,6 @@
+global.isSuccess = (code) ->
+  /2../.test code
+
 azure = require("azure-storage")
 Promise = require("bluebird")
 Promise.promisifyAll azure

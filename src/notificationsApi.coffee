@@ -26,5 +26,12 @@ module.exports =
         JSON.stringify body
 
     requestAsync requestMessage
-    .then -> console.log "NOTIFICATION OK"
+    .then ([response]) ->
+      if isSuccess response.statusCode
+        console.log "NOTIFICATION OK"
+      else
+        err =
+          status: response.statusCode
+          body: response.body
+        throw err
     .catch (err) -> console.log err
