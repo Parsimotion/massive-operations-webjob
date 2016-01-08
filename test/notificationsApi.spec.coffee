@@ -15,7 +15,7 @@ describe "NotificationsApi", ->
       success: true
       statusCode: successRes.statusCode
 
-    notificationsApi.success jobId, successRes
+    notificationsApi.success jobId, successRes, mocks.accessToken
     .then -> req.done()
 
   it "on failure should send the operation with success = false and response body", ->
@@ -24,5 +24,5 @@ describe "NotificationsApi", ->
       statusCode: failureRes.statusCode
       message: failureRes.body
 
-    notificationsApi.fail jobId, failureRes
+    notificationsApi.fail jobId, failureRes, mocks.accessToken
     .then -> req.done()

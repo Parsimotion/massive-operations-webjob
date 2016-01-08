@@ -16,12 +16,13 @@ module.exports = (queueService, baseUrl) ->
 
         console.log message
         messageText = JSON.parse message.messagetext
-        requestMessage = @_createRequest messageText
 
+        jobId = messageText.headers.job
+        accessToken = messageText.headers.authorization
+
+        requestMessage = @_createRequest messageText
         requestAsync requestMessage
         .then ([response]) =>
-          jobId = messageText.headers.job
-          accessToken = messageText.headers.authorization
           if isSuccess response.statusCode
             @_requestSuccess queue, message, response, jobId, accessToken
           else

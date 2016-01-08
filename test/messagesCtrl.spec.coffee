@@ -10,6 +10,7 @@ message =
   headers:
     "content-type": "application/json"
     "job": "0"
+    "authorization": mocks.accessToken
 
 req = null
 ctrl = null
