@@ -1,6 +1,5 @@
 nock = require('nock')
 mocks = require('./helpers/mocks')
-include = require("include")
 MessagesCtrl = include("src/messagesCtrl")
 
 queue = "massiveoperations"
@@ -9,8 +8,8 @@ message =
   method: "GET"
   resource: "/resource"
   headers:
-    "Content-Type": "application/json"
-    Job: "0"
+    "content-type": "application/json"
+    "job": "0"
 
 req = null
 ctrl = null
@@ -28,7 +27,7 @@ describe "MessagesCtrl", ->
       .get message.resource
       .reply 200, [ id: 0 ]
 
-      notification = mocks.expectNotification message.headers.Job,
+      notification = mocks.expectNotification message.headers.job,
         success: true
         statusCode: 200
 
@@ -58,7 +57,7 @@ describe "MessagesCtrl", ->
         .get message.resource
         .reply 404, errorMessage
 
-        notification = mocks.expectNotification message.headers.Job,
+        notification = mocks.expectNotification message.headers.job,
           success: false
           statusCode: 404
           message: errorMessage

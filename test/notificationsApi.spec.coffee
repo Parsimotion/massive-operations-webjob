@@ -1,5 +1,4 @@
 mocks = require('./helpers/mocks')
-include = require("include")
 notificationsApi = include("src/notificationsApi")
 
 jobId = 0
