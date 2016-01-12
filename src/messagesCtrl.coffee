@@ -35,7 +35,7 @@ module.exports = (queueService, baseUrl) ->
   _createRequest: (messageText) ->
     method: messageText.method
     url: baseUrl + messageText.resource
-    headers: messageText.headers
+    headers: _.omit messageText.headers, "host"
     body: messageText.body
 
   _requestSuccess: (queue, message, response, notificationsApi) ->

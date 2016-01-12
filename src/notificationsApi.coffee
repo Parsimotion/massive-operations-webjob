@@ -27,6 +27,9 @@ module.exports =
         body:
           JSON.stringify body
 
+      console.log "SENDING NOTIFICATION"
+      console.log requestMessage
+
       requestAsync requestMessage
       .then ([response]) ->
         if isSuccess response.statusCode
