@@ -1,6 +1,5 @@
 baseApi = require('./config').notificationsApiUrl
-Promise = require("bluebird")
-requestAsync = Promise.promisify require("request")
+rp = require('request-promise')
 
 module.exports =
   class NotificationsApi
@@ -15,28 +14,24 @@ module.exports =
       @_makeRequest
         success: false
         statusCode: response.statusCode
-        message: response.body
+        message: response.error
 
     _makeRequest: (body) =>
       requestMessage =
         method: "POST"
-        url: baseApi + "/jobs/#{@jobId}/operations"
+        uri: baseApi + "/jobs/#{@jobId}/operations"
         headers:
           'content-type': 'application/json'
           'Authorization': @accessToken
-        body:
-          JSON.stringify body
+        body: body
+        json: true
 
       console.log "SENDING NOTIFICATION"
       console.log requestMessage
 
-      requestAsync requestMessage
-      .then ([response]) ->
-        if isSuccess response.statusCode
-          console.log "NOTIFICATION OK"
-        else
-          err =
-            status: response.statusCode
-            body: response.body
-          throw err
-      .catch (err) -> console.log err
+      rp requestMessage
+      .then -> console.log "NOTIFICATION OK"
+      .catch (response) ->
+        console.log
+          status: response.statusCode
+          body: response.error

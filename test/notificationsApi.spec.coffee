@@ -6,7 +6,7 @@ successRes =
   statusCode: 201
 failureRes =
   statusCode: 500
-  body: "Error"
+  error: "Error"
 
 describe "NotificationsApi", ->
 
@@ -22,7 +22,7 @@ describe "NotificationsApi", ->
     req = mocks.expectNotification
       success: false
       statusCode: failureRes.statusCode
-      message: failureRes.body
+      message: failureRes.error
 
     notificationsApi.fail failureRes
     .then -> req.done()

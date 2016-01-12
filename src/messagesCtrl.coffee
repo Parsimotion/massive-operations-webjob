@@ -1,7 +1,7 @@
 _ = require('lodash')
 config = require('./config')
 Promise = require("bluebird")
-requestAsync = Promise.promisify require("request")
+rp = require('request-promise')
 NotificationsApi = require('./notificationsApi')
 
 maxProcessCount = config.maxProcessMessageCount
@@ -25,18 +25,17 @@ module.exports = (queueService, baseUrl) ->
         console.log "SENDING REQUEST"
         console.log requestMessage
 
-        requestAsync requestMessage
-        .then ([response]) =>
-          if isSuccess response.statusCode
-            @_requestSuccess queue, message, response, notificationsApi
-          else
-            @_requestFail queue, message, response, notificationsApi
+        rp requestMessage
+        .then (response) => @_requestSuccess queue, message, response, notificationsApi
+        .catch (response) => @_requestFail queue, message, response, notificationsApi
+
 
   _createRequest: (messageText) ->
     method: messageText.method
-    url: baseUrl + messageText.resource
+    uri: baseUrl + messageText.resource
     headers: _.omit messageText.headers, "host"
     body: messageText.body
+    resolveWithFullResponse: true
 
   _requestSuccess: (queue, message, response, notificationsApi) ->
     console.log "SUCCESS"
