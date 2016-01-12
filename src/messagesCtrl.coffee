@@ -22,6 +22,9 @@ module.exports = (queueService, baseUrl) ->
         notificationsApi = new NotificationsApi jobId, accessToken
 
         requestMessage = @_createRequest messageText
+        console.log "SENDING REQUEST"
+        console.log requestMessage
+
         requestAsync requestMessage
         .then ([response]) =>
           if isSuccess response.statusCode
@@ -37,12 +40,16 @@ module.exports = (queueService, baseUrl) ->
 
   _requestSuccess: (queue, message, response, notificationsApi) ->
     console.log "SUCCESS"
+    console.log response.body
+
     Promise.props
       notification: notificationsApi.success response
       deleteMessage: @_deleteMessage queue, message
 
   _requestFail: (queue, message, response, notificationsApi) ->
     console.log "FAILURE"
+    console.log response.body
+
     if _.parseInt(message.dequeuecount) >= maxProcessCount
       notification = notificationsApi.fail response
       moveMessage = queueService
