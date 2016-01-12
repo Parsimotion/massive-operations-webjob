@@ -5,7 +5,7 @@
     "type": "git",
     "url": "git://github.com/Parsimotion/massive-operations-webjob"
   },
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "main.js",
   "dependencies": {
     "azure-storage": "~0.6.0",
