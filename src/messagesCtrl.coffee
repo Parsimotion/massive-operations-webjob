@@ -47,7 +47,7 @@ module.exports = (queueService, baseUrl) ->
 
   _requestFail: (queue, message, response, notificationsApi) ->
     console.log "FAILURE"
-    console.log response.body
+    console.log response.error
 
     if _.parseInt(message.dequeuecount) >= maxProcessCount
       notification = notificationsApi.fail response
