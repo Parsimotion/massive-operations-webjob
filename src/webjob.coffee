@@ -1,9 +1,29 @@
 azure = require("azure-storage")
 Promise = require("bluebird")
 Promise.promisifyAll azure
-controller = require("./messagesCtrl")
+_ = require("lodash")
+MessageFlowBalancer = require("./messageFlowBalancer")
 
 module.exports =
-  create: (storageName, storageKey, baseUrl) ->
+
+  # storageName, storageKey, queue, baseUrl, numOfMessages, visibilityTimeout, maxDequeueCount, concurrency
+  run: (options) ->
+    _.defaults options,
+      numOfMessages: 16
+      visibilityTimeout: 90
+      maxDequeueCount: 5
+      concurrency: 50    
+
+    { storageName, storageKey, queue, baseUrl } = options
+    
     queueService = azure.createQueueService storageName, storageKey
-    controller queueService, baseUrl
+    processor = new MessageProcessor(baseUrl)
+
+    createQueueIfNotExists queueService, storageName, storageKey, queue
+    .then ->
+      new MessageFlowBalancer(queueService, processor, options).run()
+
+
+  createQueueIfNotExists: (queueService, storageName, storageKey, queue) ->
+    queueService.createQueueIfNotExistsAsync(queue).then ->
+      queueService.createQueueIfNotExistsAsync(queue + '-poison')

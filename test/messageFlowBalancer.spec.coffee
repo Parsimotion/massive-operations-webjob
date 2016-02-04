@@ -1,6 +1,6 @@
 nock = require('nock')
 mocks = require('./helpers/mocks')
-MessagesCtrl = include("src/messagesCtrl")
+MessageProcessor = include("src/messageProcessor")
 
 queue = "massiveoperations"
 baseApi = "http://base-url.com/api"
@@ -13,14 +13,17 @@ message =
     "authorization": mocks.accessToken
 
 req = null
-ctrl = null
+processor = null
 notification = null
 queueServiceMock = null
 
-describe "MessagesCtrl", ->
+describe "MessageProcessor", ->
   beforeEach ->
     queueServiceMock = mocks.createQueueService message
-    ctrl = MessagesCtrl queueServiceMock, baseApi
+    processor = new MessageProcessor baseApi
+
+  afterEach ->
+    nock.cleanAll()
 
   describe "when process message", ->
     beforeEach ->
@@ -32,42 +35,36 @@ describe "MessagesCtrl", ->
         success: true
         statusCode: 200
 
-      ctrl.processMessage queue
-
-    it "should get the message from storage", ->
-      queueServiceMock.shouldGetMessages queue
+      processor.process message, false
 
     it "should send message request to base api", ->
       req.done()
 
     describe "and request response success", ->
 
-      it "should delete the message from storage", ->
-        queueServiceMock.shouldDeleteMessage queue
-
       it "should notify to NotificationsApi", ->
         notification.done()
 
     describe "and request response fail", ->
+      errorMessage = JSON.stringify error: "Resource doesnt exist"
+
       beforeEach ->
-        nock.cleanAll()
-
-        errorMessage = JSON.stringify error: "Resource doesnt exist"
-
         nock baseApi
         .get message.resource
-        .reply 404, errorMessage
+        .reply 404, errorMessage       
 
-        notification = mocks.expectNotification
+      it "should reject the promise", (done) ->
+        processor.process(message, false).catch (err) ->
+          err.should.eql errorMessage
+          done()
+
+      it "should send notify the failure to the NotificationsApi if it is the last try", (done) ->
+        failNotification = mocks.expectNotification
           success: false
           statusCode: 404
           message: errorMessage
 
-        ctrl.processMessage queue
+        processor.process(message, true).catch ->
+          failNotification.done()
+          done()
 
-      it "should notify to NotificationsApi", ->
-        notification.done()
-
-      it "should move to poison queue", ->
-        queueServiceMock.shouldCreateMessage queue + "-poison", message
-        queueServiceMock.shouldDeleteMessage queue

@@ -8,6 +8,7 @@
   "version": "0.0.9",
   "main": "main.js",
   "dependencies": {
+    "async": "^1.5.2",
     "azure-storage": "~0.6.0",
     "bluebird": "~2.10.1",
     "coffee-script": "^1.8.0",
