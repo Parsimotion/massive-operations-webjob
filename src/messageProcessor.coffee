@@ -13,7 +13,6 @@ class MessageProcessor
     notificationsApi = new NotificationsApi jobId, accessToken
 
     options = @_createRequestOptions req
-    console.log options
 
     rp(options)
     .then (response) ->

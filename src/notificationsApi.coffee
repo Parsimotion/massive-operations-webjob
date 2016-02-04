@@ -26,11 +26,7 @@ module.exports =
         body: body
         json: true
 
-      console.log "SENDING NOTIFICATION"
-      console.log requestMessage
-
       rp requestMessage
-      .then -> console.log "NOTIFICATION OK"
       .catch (response) ->
         console.log
           status: response.statusCode
