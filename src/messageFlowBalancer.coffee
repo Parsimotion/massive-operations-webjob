@@ -1,6 +1,7 @@
 _ = require("lodash")
 MessageProcessor = require("./messageProcessor")
 async = require('async')
+Promise = require("bluebird")
 
 module.exports =
 
@@ -47,11 +48,18 @@ class MessageFlowBalancer
   _deleteMessage: (message) =>
     @queueService.deleteMessageAsync @queue, message.messageid, message.popreceipt
 
-  _getMessages: =>
-    options = _.pick @options, ['numOfMessages', 'visibilityTimeout']
-    @queueService
-    .getMessagesAsync @queue, options
-    .then ([messages]) =>
-      return @_getMessages() if messages.length == 0
-      console.log "got #{messages.length}"
-      messages
+  _getMessages: (timeout = 0) =>
+    new Promise (resolve) ->
+      setTimeout resolve, timeout
+    .then () =>
+      options = _.pick @options, ['numOfMessages', 'visibilityTimeout']
+      @queueService
+      .getMessagesAsync @queue, options
+      .then ([messages]) =>
+        return @_getMessages(@_nextTimout timeout) if messages.length == 0
+        console.log "got #{messages.length}"
+        messages
+
+  _nextTimout: (timeout) ->
+    return 1000 if timeout is 0
+    Math.min(timeout * 2, 8000)
