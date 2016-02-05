@@ -7,23 +7,28 @@ module.exports =
 class MessageFlowBalancer
 
   constructor: (@queueService, @messageProcessor, @options) ->
-    { @queue, @baseUrl, @numOfMessages, @concurrency } = options
+    { @queue, @baseUrl, @numOfMessages, @maxDequeueCount, @concurrency } = options
 
   run: =>
     worker = @_getWorker()
     q = async.queue worker, @concurrency
+    gettingMessages = null
 
     getMessages = =>
+      gettingMessages = true
+      console.log "reordering due to internal queue length is #{q.length()}..."
       @_getMessages().then (messages) =>
+        gettingMessages = false
         messages.forEach (message) =>
-          q.push message, ->
+          q.push message, (err) =>
+            console.log "message #{message.messageid} processed successfully"
             reorderpoint = Math.ceil @numOfMessages / 2 
-            getMessages() if q.length() <= reorderpoint
+            getMessages() if q.length() <= reorderpoint and gettingMessages is false
 
     getMessages()  
 
   _getWorker: => (message, callback) =>
-    lastTry = _.parseInt(message.dequeuecount) >= maxDequeueCount
+    lastTry = _.parseInt(message.dequeuecount) >= @maxDequeueCount
     req = JSON.parse message.messagetext
 
     @messageProcessor.process(req, lastTry)
@@ -46,4 +51,7 @@ class MessageFlowBalancer
     options = _.pick @options, ['numOfMessages', 'visibilityTimeout']
     @queueService
     .getMessagesAsync @queue, options
-    .then ([messages]) ->
+    .then ([messages]) =>
+      return @_getMessages() if messages.length == 0
+      console.log "got #{messages.length}"
+      messages

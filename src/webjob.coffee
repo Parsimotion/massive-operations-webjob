@@ -3,6 +3,7 @@ Promise = require("bluebird")
 Promise.promisifyAll azure
 _ = require("lodash")
 MessageFlowBalancer = require("./messageFlowBalancer")
+MessageProcessor = require("./messageProcessor")
 
 module.exports =
 
@@ -19,7 +20,7 @@ module.exports =
     queueService = azure.createQueueService storageName, storageKey
     processor = new MessageProcessor(baseUrl)
 
-    createQueueIfNotExists queueService, storageName, storageKey, queue
+    @createQueueIfNotExists queueService, storageName, storageKey, queue
     .then ->
       new MessageFlowBalancer(queueService, processor, options).run()
 
