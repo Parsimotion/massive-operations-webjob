@@ -8,7 +8,7 @@ JobMessageProcessor = require("./jobMessageProcessor")
 
 module.exports =
 
-  # storageName, storageKey, queue, jobQueue, baseUrl, numOfMessages, visibilityTimeout, maxDequeueCount, concurrency
+  # storageName, storageKey, queue, jobsQueue, baseUrl, numOfMessages, visibilityTimeout, maxDequeueCount, concurrency
   run: (options) ->
     _.defaults options,
       numOfMessages: 16
@@ -16,10 +16,10 @@ module.exports =
       maxDequeueCount: 5
       concurrency: 50
 
-    { storageName, storageKey, queue, baseUrl, jobQueue } = options
+    { storageName, storageKey, queue, baseUrl, jobsQueue } = options
     
     queueService = azure.createQueueService storageName, storageKey
-    Processor = if jobQueue then JobMessageProcessor else MessageProcessor
+    Processor = if jobsQueue then JobMessageProcessor else MessageProcessor
     processor = new Processor(baseUrl)
 
     @createQueueIfNotExists queueService, storageName, storageKey, queue
