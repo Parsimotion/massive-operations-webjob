@@ -21,8 +21,10 @@ class MessageFlowBalancer
       @_getMessages().then (messages) =>
         gettingMessages = false
         messages.forEach (message) =>
+          startTime = new Date()
           q.push message, (err) =>
-            console.log "message #{message.messageid} processed successfully"
+            elapsedTime = parseInt (new Date() - startTime) / 1000
+            console.log "message #{message.messageid} processed successfully in #{elapsedTime}s"
             reorderpoint = Math.ceil @numOfMessages / 2 
             getMessages() if q.length() <= reorderpoint and gettingMessages is false
 

@@ -4,21 +4,23 @@ Promise.promisifyAll azure
 _ = require("lodash")
 MessageFlowBalancer = require("./messageFlowBalancer")
 MessageProcessor = require("./messageProcessor")
+JobMessageProcessor = require("./jobMessageProcessor")
 
 module.exports =
 
-  # storageName, storageKey, queue, baseUrl, numOfMessages, visibilityTimeout, maxDequeueCount, concurrency
+  # storageName, storageKey, queue, jobQueue, baseUrl, numOfMessages, visibilityTimeout, maxDequeueCount, concurrency
   run: (options) ->
     _.defaults options,
       numOfMessages: 16
       visibilityTimeout: 90
       maxDequeueCount: 5
-      concurrency: 50    
+      concurrency: 50
 
-    { storageName, storageKey, queue, baseUrl } = options
+    { storageName, storageKey, queue, baseUrl, jobQueue } = options
     
     queueService = azure.createQueueService storageName, storageKey
-    processor = new MessageProcessor(baseUrl)
+    Processor = if jobQueue then JobMessageProcessor else MessageProcessor
+    processor = new Processor(baseUrl)
 
     @createQueueIfNotExists queueService, storageName, storageKey, queue
     .then ->
