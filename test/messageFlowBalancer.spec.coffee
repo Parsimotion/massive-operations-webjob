@@ -46,23 +46,23 @@ describe "MessageProcessor", ->
         notification.done()
 
     describe "and request response fail", ->
-      errorMessage = JSON.stringify error: "Resource doesnt exist"
+      errorMessage = error: "Resource doesnt exist"
 
       beforeEach ->
         nock baseApi
         .get message.resource
         .reply 404, errorMessage       
 
-      it "should reject the promise", (done) ->
+      it "should call the callback with the error", (done) ->
         processor.process message, false, (err) ->
-          err.body.should.eql errorMessage
+          err.should.eql JSON.stringify errorMessage
           done()
 
       it "should send notify the failure to the NotificationsApi if it is the last try", (done) ->
         failNotification = mocks.expectNotification
           success: false
           statusCode: 404
-          message: errorMessage
+          message: JSON.stringify errorMessage
 
         processor.process message, true, ->
           failNotification.done()

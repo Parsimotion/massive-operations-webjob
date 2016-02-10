@@ -51,7 +51,7 @@ class MessageFlowBalancer
     retrieve = =>
       options = _.pick @options, ['numOfMessages', 'visibilityTimeout']
       @queueService.getMessages @queue, options, (err, messages) =>
-        return @_getMessages(@_nextTimout(timeout), callback) if messages.length == 0 or err?
+        return @_getMessages(@_nextTimout(timeout), callback) if err? or messages.length == 0
         console.log "got #{messages.length}"
         callback messages
 
