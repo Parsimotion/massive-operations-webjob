@@ -10,9 +10,7 @@ class JobMessageProcessor extends  MessageProcessor
     accessToken = req.headers.authorization
     notificationsApi = new NotificationsApi jobId, accessToken
 
-    options = @_createRequestOptions req
-
-    rp(options)
+    @_sendRequest(req)
     .then (response) ->
       notificationsApi.success response
     .catch (response) ->
