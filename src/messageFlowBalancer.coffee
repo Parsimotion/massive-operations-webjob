@@ -18,7 +18,7 @@ class MessageFlowBalancer
     getMessages = =>
       gettingMessages = true
       console.log "reordering due to internal queue length is #{q.length()}..."
-      @_getMessages().then (messages) =>
+      @_getMessages 0, (messages) =>
         gettingMessages = false
         messages.forEach (message) =>
           startTime = new Date()
@@ -34,33 +34,28 @@ class MessageFlowBalancer
     lastTry = _.parseInt(message.dequeuecount) >= @maxDequeueCount
     req = JSON.parse message.messagetext
 
-    @messageProcessor.process(req, lastTry)
-    .then () =>
-      @_deleteMessage(message).finally -> callback()
-    .catch (err) =>
-      return callback() if !lastTry
-      console.log err
-      @_moveToPoison(message).finally -> callback()
+    @messageProcessor.process req, lastTry, (err) =>
+      return callback() if err? and !lastTry
+      return @_moveToPoison(err, message, callback) if err?
+      @_deleteMessage message, callback
 
-  _moveToPoison: (message) =>
-    @queueService
-    .createMessageAsync(@queue + "-poison", message.messagetext).then () =>
-      @_deleteMessage message
+  _moveToPoison: (err, message, callback) =>
+    console.log err
+    @queueService.createMessage @queue + "-poison", message.messagetext, =>
+      @_deleteMessage message, callback
 
-  _deleteMessage: (message) =>
-    @queueService.deleteMessageAsync @queue, message.messageid, message.popreceipt
+  _deleteMessage: (message, callback) =>
+    @queueService.deleteMessage @queue, message.messageid, message.popreceipt, callback
 
-  _getMessages: (timeout = 0) =>
-    new Promise (resolve) ->
-      setTimeout resolve, timeout
-    .then () =>
+  _getMessages: (timeout, callback) =>
+    retrieve = =>
       options = _.pick @options, ['numOfMessages', 'visibilityTimeout']
-      @queueService
-      .getMessagesAsync @queue, options
-      .then ([messages]) =>
-        return @_getMessages(@_nextTimout timeout) if messages.length == 0
+      @queueService.getMessages @queue, options, (err, messages) =>
+        return @_getMessages(@_nextTimout(timeout), callback) if messages.length == 0 or err?
         console.log "got #{messages.length}"
-        messages
+        callback messages
+
+    setTimeout retrieve, timeout
 
   _nextTimout: (timeout) ->
     return 1000 if timeout is 0

@@ -1,20 +1,19 @@
 NotificationsApi = require('./notificationsApi')
 MessageProcessor = require('./messageProcessor')
-rp = require('request-promise')
+request = require('request')
 
 module.exports =
 
 class JobMessageProcessor extends  MessageProcessor
-  process: (req, lastTry) =>
+  process: (req, lastTry, callback) =>
     jobId = req.headers.job
     accessToken = req.headers.authorization
     notificationsApi = new NotificationsApi jobId, accessToken
 
-    @_sendRequest(req)
-    .then (response) ->
-      notificationsApi.success response
-    .catch (response) ->
-      throw response.error if !lastTry
-      notificationsApi.fail response
-      .then ->
-        throw response.error
+    options = @_createRequestOptions req
+    request options, (err, response, body) ->
+      if err or response.statusCode >= 400
+        error = err or response
+        return callback(error) if !lastTry
+        return notificationsApi.fail response, (e) -> callback e or err or body
+      notificationsApi.success response, callback

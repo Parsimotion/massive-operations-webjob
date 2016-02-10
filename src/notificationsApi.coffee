@@ -1,22 +1,24 @@
 baseApi = require('./config').notificationsApiUrl
-rp = require('request-promise')
+request = require('request')
 
 module.exports =
   class NotificationsApi
     constructor: (@jobId, @accessToken) ->
 
-    success: (response) =>
-      @_makeRequest
+    success: (response, callback) =>
+      @_makeRequest {
         success: true
-        statusCode: response.statusCode
+        statusCode: response.statusCode        
+      }, callback
 
-    fail: (response) =>
-      @_makeRequest
+    fail: (response, callback) =>
+      @_makeRequest {
         success: false
         statusCode: response.statusCode
-        message: response.error
+        message: response.body        
+      }, callback
 
-    _makeRequest: (body) =>
+    _makeRequest: (body, callback) =>
       requestMessage =
         method: "POST"
         uri: baseApi + "/jobs/#{@jobId}/operations"
@@ -26,8 +28,4 @@ module.exports =
         body: body
         json: true
 
-      rp requestMessage
-      .catch (response) ->
-        console.log
-          status: response.statusCode
-          body: response.error
+      request requestMessage, callback

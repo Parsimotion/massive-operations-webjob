@@ -1,6 +1,6 @@
 nock = require('nock')
 mocks = require('./helpers/mocks')
-MessageProcessor = include("src/messageProcessor")
+JobMessageProcessor = include("src/jobMessageProcessor")
 
 queue = "massiveoperations"
 baseApi = "http://base-url.com/api"
@@ -20,13 +20,13 @@ queueServiceMock = null
 describe "MessageProcessor", ->
   beforeEach ->
     queueServiceMock = mocks.createQueueService message
-    processor = new MessageProcessor baseApi
+    processor = new JobMessageProcessor baseApi
 
   afterEach ->
     nock.cleanAll()
 
   describe "when process message", ->
-    beforeEach ->
+    beforeEach (done) ->
       req = nock baseApi
       .get message.resource
       .reply 200, [ id: 0 ]
@@ -35,7 +35,7 @@ describe "MessageProcessor", ->
         success: true
         statusCode: 200
 
-      processor.process message, false
+      processor.process message, false, done
 
     it "should send message request to base api", ->
       req.done()
@@ -54,8 +54,8 @@ describe "MessageProcessor", ->
         .reply 404, errorMessage       
 
       it "should reject the promise", (done) ->
-        processor.process(message, false).catch (err) ->
-          err.should.eql errorMessage
+        processor.process message, false, (err) ->
+          err.body.should.eql errorMessage
           done()
 
       it "should send notify the failure to the NotificationsApi if it is the last try", (done) ->
@@ -64,7 +64,7 @@ describe "MessageProcessor", ->
           statusCode: 404
           message: errorMessage
 
-        processor.process(message, true).catch ->
+        processor.process message, true, ->
           failNotification.done()
           done()
 
