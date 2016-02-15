@@ -17,14 +17,10 @@ class MessageFlowBalancer
 
     getMessages = =>
       gettingMessages = true
-      console.log "reordering due to internal queue length is #{q.length()}..."
       @_getMessages 0, (messages) =>
         gettingMessages = false
         messages.forEach (message) =>
-          startTime = new Date()
           q.push message, (err) =>
-            elapsedTime = parseInt (new Date() - startTime) / 1000
-            console.log "message #{message.messageid} processed successfully in #{elapsedTime}s"
             reorderpoint = Math.ceil @numOfMessages / 2 
             getMessages() if q.length() <= reorderpoint and gettingMessages is false
 
@@ -40,7 +36,6 @@ class MessageFlowBalancer
       @_deleteMessage message, callback
 
   _moveToPoison: (err, message, callback) =>
-    console.log err
     @queueService.createMessage @queue + "-poison", message.messagetext, =>
       @_deleteMessage message, callback
 
@@ -52,7 +47,6 @@ class MessageFlowBalancer
       options = _.pick @options, ['numOfMessages', 'visibilityTimeout']
       @queueService.getMessages @queue, options, (err, messages) =>
         return @_getMessages(@_nextTimout(timeout), callback) if err? or messages.length == 0
-        console.log "got #{messages.length}"
         callback messages
 
     setTimeout retrieve, timeout
