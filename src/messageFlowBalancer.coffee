@@ -7,7 +7,7 @@ module.exports =
 
 class MessageFlowBalancer
 
-  constructor: (@queueService, @messageProcessor, @options) ->
+  constructor: (@queueClient, @messageProcessor, @options) ->
     { @queue, @baseUrl, @numOfMessages, @maxDequeueCount, @concurrency } = options
 
   run: =>
@@ -36,16 +36,16 @@ class MessageFlowBalancer
       @_deleteMessage message, callback
 
   _moveToPoison: (err, message, callback) =>
-    @queueService.createMessage @queue + "-poison", message.messagetext, =>
+    @queueClient.createMessage @queue + "-poison", message.messagetext, =>
       @_deleteMessage message, callback
 
   _deleteMessage: (message, callback) =>
-    @queueService.deleteMessage @queue, message.messageid, message.popreceipt, callback
+    @queueClient.deleteMessage @queue, message.messageid, message.popreceipt, callback
 
   _getMessages: (timeout, callback) =>
     retrieve = =>
-      options = _.pick @options, ['numOfMessages', 'visibilityTimeout']
-      @queueService.getMessages @queue, options, (err, messages) =>
+      options = _.mapKeys _.pick(@options, ['numOfMessages', 'visibilityTimeout']), (value, key) -> key.toLowerCase()
+      @queueClient.getMessages @queue, options, (err, messages) =>
         return @_getMessages(@_nextTimout(timeout), callback) if err? or messages.length == 0
         callback messages
 

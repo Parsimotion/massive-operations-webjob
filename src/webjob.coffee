@@ -1,4 +1,4 @@
-azure = require("azure-storage")
+azureQueue = require("azure-queue-node")
 Promise = require("bluebird")
 Promise.promisifyAll azure
 _ = require("lodash")
@@ -17,16 +17,24 @@ module.exports =
       concurrency: 50
 
     { storageName, storageKey, queue, baseUrl, jobsQueue } = options
-    
-    queueService = azure.createQueueService storageName, storageKey
+
+    queueClient = azureQueue.setDefaultClient
+      accountUrl: "http://#{storageName}.queue.core.windows.net/",
+      accountName: storageName,
+      accountKey: storageKey
+
     Processor = if jobsQueue then JobMessageProcessor else MessageProcessor
     processor = new Processor(baseUrl)
 
-    @createQueueIfNotExists queueService, storageName, storageKey, queue
+    @createQueueIfNotExists storageName, storageKey, queue
     .then ->
-      new MessageFlowBalancer(queueService, processor, options).run()
+      new MessageFlowBalancer(queueClient, processor, options).run()
 
 
-  createQueueIfNotExists: (queueService, storageName, storageKey, queue) ->
+  createQueueIfNotExists: (storageName, storageKey, queue) ->
+    azureStorage = require("azure-storage")
+    queueService = Promise.promisifyAll azureStorage.createQueueService storageName, storageKey
     queueService.createQueueIfNotExistsAsync(queue).then ->
       queueService.createQueueIfNotExistsAsync(queue + '-poison')
+
+
