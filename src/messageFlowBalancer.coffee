@@ -30,7 +30,6 @@ class MessageFlowBalancer
   _getWorker: => (message, callback) =>
     lastTry = _.parseInt(message.dequeueCount) >= @maxDequeueCount
     req = message.messageText
-    console.log message
 
     @messageProcessor.process req, lastTry, (err) =>
       return @_releaseMessage(message, callback) if err? and !lastTry
