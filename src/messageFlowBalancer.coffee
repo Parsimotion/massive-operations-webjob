@@ -27,8 +27,9 @@ class MessageFlowBalancer
     getMessages()  
 
   _getWorker: => (message, callback) =>
-    lastTry = _.parseInt(message.dequeuecount) >= @maxDequeueCount
+    lastTry = _.parseInt(message.dequeueCount) >= @maxDequeueCount
     req = message.messageText
+    console.log message
 
     @messageProcessor.process req, lastTry, (err) =>
       return callback() if err? and !lastTry
@@ -40,7 +41,7 @@ class MessageFlowBalancer
       @_deleteMessage message, callback
 
   _deleteMessage: (message, callback) =>
-    @queueClient.deleteMessage @queue, message.messageid, message.popreceipt, callback
+    @queueClient.deleteMessage @queue, message.messageId, message.popReceipt, callback
 
   _getMessages: (timeout, callback) =>
     retrieve = =>
