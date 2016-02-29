@@ -28,7 +28,7 @@ class MessageFlowBalancer
 
   _getWorker: => (message, callback) =>
     lastTry = _.parseInt(message.dequeuecount) >= @maxDequeueCount
-    req = JSON.parse message.messagetext
+    req = message.messageText
 
     @messageProcessor.process req, lastTry, (err) =>
       return callback() if err? and !lastTry
@@ -36,7 +36,7 @@ class MessageFlowBalancer
       @_deleteMessage message, callback
 
   _moveToPoison: (err, message, callback) =>
-    @queueClient.createMessage @queue + "-poison", message.messagetext, =>
+    @queueClient.createMessage @queue + "-poison", message.messageText, =>
       @_deleteMessage message, callback
 
   _deleteMessage: (message, callback) =>
