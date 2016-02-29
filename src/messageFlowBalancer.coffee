@@ -8,9 +8,10 @@ module.exports =
 class MessageFlowBalancer
 
   constructor: (@queueClient, @messageProcessor, @options) ->
-    { @queue, @baseUrl, @numOfMessages, @maxDequeueCount, @concurrency } = options
+    { @queue, @baseUrl, @maxMessages, @maxDequeueCount, @concurrency } = options
 
   run: =>
+    console.log "running..."
     worker = @_getWorker()
     q = async.queue worker, @concurrency
     gettingMessages = null
@@ -21,7 +22,7 @@ class MessageFlowBalancer
         gettingMessages = false
         messages.forEach (message) =>
           q.push message, (err) =>
-            reorderpoint = Math.ceil @numOfMessages / 2 
+            reorderpoint = Math.ceil @maxMessages / 2 
             getMessages() if q.length() <= reorderpoint and gettingMessages is false
 
     getMessages()  
@@ -45,7 +46,7 @@ class MessageFlowBalancer
 
   _getMessages: (timeout, callback) =>
     retrieve = =>
-      options = _.mapKeys _.pick(@options, ['numOfMessages', 'visibilityTimeout']), (value, key) -> key.toLowerCase()
+      options = _.pick(@options, ['maxMessages', 'visibilityTimeout'])
       @queueClient.getMessages @queue, options, (err, messages) =>
         return @_getMessages(@_nextTimout(timeout), callback) if err? or messages.length == 0
         callback messages

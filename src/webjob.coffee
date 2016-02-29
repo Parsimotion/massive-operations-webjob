@@ -7,10 +7,10 @@ JobMessageProcessor = require("./jobMessageProcessor")
 
 module.exports =
 
-  # storageName, storageKey, queue, jobsQueue, baseUrl, numOfMessages, visibilityTimeout, maxDequeueCount, concurrency
+  # storageName, storageKey, queue, jobsQueue, baseUrl, maxMessages, visibilityTimeout, maxDequeueCount, concurrency
   run: (options) ->
     _.defaults options,
-      numOfMessages: 16
+      maxMessages: 16
       visibilityTimeout: 90
       maxDequeueCount: 5
       concurrency: 50
