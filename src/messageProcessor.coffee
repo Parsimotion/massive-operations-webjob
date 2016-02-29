@@ -10,7 +10,7 @@ class MessageProcessor
     options = @_createRequestOptions req
     request options, (err, response) =>
       return callback(err) if err?
-      return callback(response.error) if response.statusCode >= 400
+      return callback(response) if response.statusCode >= 400
       callback()
 
   _createRequestOptions: (req) ->

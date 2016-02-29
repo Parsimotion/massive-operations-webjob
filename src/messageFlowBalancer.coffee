@@ -31,13 +31,13 @@ class MessageFlowBalancer
     lastTry = _.parseInt(message.dequeueCount) >= @maxDequeueCount
     req = message.messageText
 
-    @messageProcessor.process req, lastTry, (err) =>
-      return @_releaseMessage(message, callback) if err? and !lastTry
-      return @_moveToPoison(err, message, callback) if err?
+    @messageProcessor.process req, lastTry, (response) =>
+      return @_releaseMessage(message, callback) if response?.statusCode >= 500 and !lastTry
+      return @_moveToPoison(message, callback) if response?
       @_deleteMessage message, callback
 
-  _moveToPoison: (err, message, callback) =>
-    @queueClient.createMessage @queue + "-poison", message.messageText, =>
+  _moveToPoison: (message, callback) =>
+    @queueClient.putMessage @queue + "-poison", message.messageText, =>
       @_deleteMessage message, callback
 
   _deleteMessage: (message, callback) =>

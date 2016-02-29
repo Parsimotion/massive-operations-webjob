@@ -11,8 +11,8 @@ class JobMessageProcessor extends  MessageProcessor
     notificationsApi = new NotificationsApi jobId, accessToken
 
     options = @_createRequestOptions req
-    request options, (err, response, body) ->
-      if err or response.statusCode >= 400
-        return callback(err or body) if !lastTry
-        return notificationsApi.fail response, (e) -> callback e or err or body
+    request options, (err, response) ->
+      if err or response?.statusCode >= 400
+        return callback(err or response) if response?.statusCode >= 500 and !lastTry
+        return notificationsApi.fail response, -> callback err or response
       notificationsApi.success response, callback
