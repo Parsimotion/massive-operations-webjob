@@ -11,7 +11,7 @@ module.exports =
   run: (options) ->
     _.defaults options,
       maxMessages: 16
-      visibilityTimeout: 90
+      visibilityTimeout: 900 #15min
       maxDequeueCount: 5
       concurrency: 50
 

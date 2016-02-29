@@ -33,7 +33,7 @@ class MessageFlowBalancer
     console.log message
 
     @messageProcessor.process req, lastTry, (err) =>
-      return callback() if err? and !lastTry
+      return @_releaseMessage(message, callback) if err? and !lastTry
       return @_moveToPoison(err, message, callback) if err?
       @_deleteMessage message, callback
 
@@ -43,6 +43,9 @@ class MessageFlowBalancer
 
   _deleteMessage: (message, callback) =>
     @queueClient.deleteMessage @queue, message.messageId, message.popReceipt, callback
+
+  _releaseMessage: (message, callback) =>
+    @queueClient.updateMessage @queue, message.messageId, message.popReceipt, 1, message.messageText, callback    
 
   _getMessages: (timeout, callback) =>
     retrieve = =>
