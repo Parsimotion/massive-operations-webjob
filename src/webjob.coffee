@@ -1,4 +1,5 @@
 azureQueue = require("azure-queue-node")
+azure = require("azure")
 Promise = require("bluebird")
 Promise.promisifyAll azure
 _ = require("lodash")
