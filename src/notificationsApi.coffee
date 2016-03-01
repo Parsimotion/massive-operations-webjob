@@ -12,13 +12,11 @@ module.exports =
       }, callback
 
     fail: (error, callback) =>
-      x = {
+      @_makeRequest {
         success: false
         statusCode: error.statusCode
         message: error.body or error.message
-      }
-      console.log x
-      @_makeRequest x, callback
+      }, callback
 
     _makeRequest: (body, callback) =>
       requestMessage =
