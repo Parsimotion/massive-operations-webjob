@@ -27,5 +27,4 @@ module.exports =
           'Authorization': @accessToken
         body: body
         json: true
-
       request requestMessage, callback

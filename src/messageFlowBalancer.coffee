@@ -8,7 +8,7 @@ module.exports =
 class MessageFlowBalancer
 
   constructor: (@queueClient, @messageProcessor, @options) ->
-    { @queue, @baseUrl, @maxMessages, @maxDequeueCount, @concurrency } = options
+    { @queue, @baseUrl, @maxMessages, @maxDequeueCount, @concurrency } = @options
 
   run: =>
     console.log "running..."
@@ -25,7 +25,7 @@ class MessageFlowBalancer
             reorderpoint = Math.ceil @maxMessages / 2 
             getMessages() if q.length() <= reorderpoint and gettingMessages is false
 
-    getMessages()  
+    getMessages()
 
   _getWorker: => (message, callback) =>
     lastTry = _.parseInt(message.dequeueCount) >= @maxDequeueCount

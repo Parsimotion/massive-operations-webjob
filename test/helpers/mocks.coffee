@@ -15,14 +15,62 @@ module.exports =
   jobId: 0
   accessToken: "Bearer 1234567890"
 
-  expectNotification: (notification) ->
+  expectNotification: (notification, done = ->) ->
     resource = "/jobs/#{@jobId}/operations"
     headers =
       'authorization': @accessToken
 
     nock notificationsApiUrl, reqheaders: headers
     .post resource, notification
-    .reply 200
+    .reply 200, ->
+      setTimeout done, 0
+      ""
+
+  nockGetMessages: (messages, done = ->) ->
+    queueMessages = messages.map (message) ->
+      """
+        <QueueMessage>
+          <MessageId>#{ message.id }</MessageId>
+          <InsertionTime>Thu, 03 Jul 2014 08:54:30 GMT</InsertionTime>
+          <ExpirationTime>Thu, 10 Jul 2014 08:54:30 GMT</ExpirationTime>
+          <DequeueCount>#{ message.dequeueCount }</DequeueCount>
+          <PopReceipt>sK52prNk0QgBAAAA</PopReceipt>
+          <TimeNextVisible>Thu, 03 Jul 2014 08:55:19 GMT</TimeNextVisible>
+          <MessageText>#{ JSON.stringify(message.messageText) }</MessageText>
+        </QueueMessage>
+      """
+    response = ->
+      setTimeout done, 0
+      """
+      <?xml version="1.0" encoding="utf-8"?>
+      <QueueMessagesList>
+      #{ queueMessages }
+      </QueueMessagesList>
+      """
+
+    nock("http://storage.queue.core.windows.net")
+    .get("/jobs/messages")
+    .once()
+    .reply 200, response, { 'cache-control': 'no-cache', 'transfer-encoding': 'chunked', 'content-type': 'application/xml', server: 'Windows-Azure-Queue/1.0 Microsoft-HTTPAPI/2.0', 'x-ms-request-id': '51e22df0-d77a-4c04-a5f9-0a8a0f885ca4', 'x-ms-version': '2014-02-14', date: 'Thu, 03 Jul 2014 08:54:49 GMT' }
+
+
+  nockDeleteMessage: (messageId, done = ->) ->
+    response = ->
+      setTimeout done, 0
+      ""
+
+    nock("http://storage.queue.core.windows.net")
+    .delete("/jobs/messages/#{messageId}?popreceipt=sK52prNk0QgBAAAA")
+    .reply 204, response, { 'content-length': '0', server: 'Windows-Azure-Queue/1.0 Microsoft-HTTPAPI/2.0', 'x-ms-request-id': 'f53bc13a-c6b7-45af-b4d8-6b79e1587af6', 'x-ms-version': '2014-02-14', date: 'Fri, 04 Jul 2014 07:26:32 GMT' }
+
+  nockUpdateMessage: (messageId, done = ->) ->
+    response = ->
+      setTimeout done, 0
+      ""
+
+    nock("http://storage.queue.core.windows.net")
+    .put("/jobs/messages/#{messageId}?popreceipt=sK52prNk0QgBAAAA&visibilitytimeout=1")
+    .reply 204, response, { 'content-length': '0', server: 'Windows-Azure-Queue/1.0 Microsoft-HTTPAPI/2.0', 'x-ms-request-id': 'e1a50159-d947-4f43-af48-d944cf6a9661', 'x-ms-version': '2014-02-14', 'x-ms-popreceipt': 'DKtBR2tl0QgBAAAA', 'x-ms-time-next-visible': 'Fri, 04 Jul 2014 06:49:46 GMT', date: 'Fri, 04 Jul 2014 06:39:46 GMT' }
 
   createQueueService: (message) ->
     getMessagesAsync: simple.stub().resolveWith [

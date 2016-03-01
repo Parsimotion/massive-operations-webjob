@@ -1,9 +1,9 @@
 nock = require('nock')
 mocks = require('./helpers/mocks')
 JobMessageProcessor = include("src/jobMessageProcessor")
+MessageFlowBalancer = include("src/messageFlowBalancer")
+azureQueue = require("azure-queue-node")
 
-queue = "massiveoperations"
-baseApi = "http://base-url.com/api"
 message =
   method: "GET"
   resource: "/resource"
@@ -12,59 +12,135 @@ message =
     "job": mocks.jobId
     "authorization": mocks.accessToken
 
-req = null
-processor = null
-notification = null
-queueServiceMock = null
+baseApi = "http://base-url.com/api"
+storageName = "storage"
+queueClient = azureQueue.setDefaultClient
+  accountUrl: "http://#{storageName}.queue.core.windows.net/",
+  accountName: storageName,
+  accountKey: "maestruli"
 
-describe "MessageProcessor", ->
-  beforeEach ->
-    queueServiceMock = mocks.createQueueService message
-    processor = new JobMessageProcessor baseApi
+errorMessage = error: "soyUnError"
+MAX_DEQUEUE_COUNT = 5
+
+processor = new JobMessageProcessor baseApi
+
+messageFlowBalancer = new MessageFlowBalancer queueClient, processor, { queue: "jobs", maxDequeueCount: MAX_DEQUEUE_COUNT }
+
+nockRequest = (resource, statusCode, body, done = ->) ->
+  nock baseApi
+  .get resource
+  .reply statusCode, ->
+    setTimeout done, 0
+    body
+
+describe "MessageFlowBalancer with a JobMessageProcessor", ->
 
   afterEach ->
     nock.cleanAll()
 
-  describe "when process message", ->
-    beforeEach (done) ->
-      req = nock baseApi
-      .get message.resource
-      .reply 200, [ id: 0 ]
+  describe "when run is called", ->
+    it "should get the messages", ->
+      getMessages = mocks.nockGetMessages [ ], ->
+        getMessages.done()
+      
+      messageFlowBalancer.run()
 
-      notification = mocks.expectNotification
-        success: true
-        statusCode: 200
+    describe "and succeeding messages are retrieved from the queue", ->
+      req = null
+      notification = null
+      deleteMessage = null
 
-      processor.process message, false, done
+      beforeEach (done) ->
+        req = nockRequest(message.resource, 200, [ id: 0 ])
+        mocks.nockGetMessages([ { id: "soyUnId", messageText: message, dequeueCount: 1 } ])
+        notification = mocks.expectNotification
+          success: true
+          statusCode: 200
+        deleteMessage = mocks.nockDeleteMessage("soyUnId", done)
 
-    it "should send message request to base api", ->
-      req.done()
+        messageFlowBalancer.run()
 
-    describe "and request response success", ->
+      it "should send the request on the message", ->
+        req.done()
 
-      it "should notify to NotificationsApi", ->
+      it "should notify", ->
         notification.done()
 
-    describe "and request response fail", ->
-      errorMessage = error: "Resource doesnt exist"
+      it "should delete the message", ->
+        deleteMessage.done()
 
-      beforeEach ->
-        nock baseApi
-        .get message.resource
-        .reply 404, errorMessage       
-
-      it "should call the callback with the error", (done) ->
-        processor.process message, false, (err) ->
-          err.should.eql JSON.stringify errorMessage
-          done()
-
-      it "should send notify the failure to the NotificationsApi if it is the last try", (done) ->
-        failNotification = mocks.expectNotification
+    describe "and failing messages of known exception are retrieved from the queue", ->
+      notification = null
+      deleteMessage = null
+      beforeEach (done) ->
+        nockRequest(message.resource, 400, errorMessage)
+        mocks.nockGetMessages([ { id: "soyUnId", messageText: message, dequeueCount: 1 } ])
+        notification = mocks.expectNotification
           success: false
-          statusCode: 404
+          statusCode: 400
           message: JSON.stringify errorMessage
 
-        processor.process message, true, ->
-          failNotification.done()
-          done()
+        deleteMessage = mocks.nockDeleteMessage("soyUnId", done)
 
+        messageFlowBalancer.run()
+
+      it "should notify the failure", ->
+        notification.done()
+
+      it "should delete the message", ->
+        deleteMessage.done()
+
+    describe "and failing messages of unknown exception are retrieved from the queue", ->
+      notification = null
+      deleteMessage = null
+      updateMessage = null
+
+      describe "and the message's dequeueCount is smaller than the maximum allowed", ->
+
+        beforeEach (done) ->
+          nockRequest(message.resource, 500, errorMessage)
+          mocks.nockGetMessages([ { id: "soyUnId", messageText: message, dequeueCount: 1 } ])
+
+          notification = mocks.expectNotification
+            success: false
+            statusCode: 500
+            message: JSON.stringify errorMessage
+
+          deleteMessage = mocks.nockDeleteMessage("soyUnId")
+          updateMessage = mocks.nockUpdateMessage("soyUnId", done)
+
+          messageFlowBalancer.run()
+
+        it "should not notify the failure", ->
+          notification.isDone().should.eql false
+
+        it "should not delete the message", ->
+          deleteMessage.isDone().should.eql false
+
+        it "should update the message visibilitytimeout", ->
+          updateMessage.done()
+
+      describe "and the message's dequeueCount is the maximum allowed", ->
+
+        beforeEach (done) ->
+          nockRequest(message.resource, 500, errorMessage)
+          mocks.nockGetMessages([ { id: "soyUnId", messageText: message, dequeueCount: MAX_DEQUEUE_COUNT } ])
+          notification = mocks.expectNotification
+            success: false
+            statusCode: 500
+            message: JSON.stringify errorMessage
+
+          deleteMessage = mocks.nockDeleteMessage("soyUnId", done)
+
+          updateMessage = mocks.nockUpdateMessage("soyUnId")
+
+          messageFlowBalancer.run()
+
+        it "should notify the failure", ->
+          notification.done()
+
+        it "should delete the message", ->
+          deleteMessage.done()
+
+        it "should not update the message visibilitytimeout", ->
+          updateMessage.isDone().should.eql false
