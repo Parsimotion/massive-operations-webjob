@@ -72,6 +72,15 @@ module.exports =
     .put("/jobs/messages/#{messageId}?popreceipt=sK52prNk0QgBAAAA&visibilitytimeout=1")
     .reply 204, response, { 'content-length': '0', server: 'Windows-Azure-Queue/1.0 Microsoft-HTTPAPI/2.0', 'x-ms-request-id': 'e1a50159-d947-4f43-af48-d944cf6a9661', 'x-ms-version': '2014-02-14', 'x-ms-popreceipt': 'DKtBR2tl0QgBAAAA', 'x-ms-time-next-visible': 'Fri, 04 Jul 2014 06:49:46 GMT', date: 'Fri, 04 Jul 2014 06:39:46 GMT' }
 
+  nockPutMessage: (message, done = ->) ->
+    response = ->
+      setTimeout done, 0
+      ""
+
+    nock("http://storage.queue.core.windows.net")
+    .post("/jobs-poison/messages", "<QueueMessage><MessageText>#{ JSON.stringify(message) }</MessageText></QueueMessage>")
+    .reply 201, response, { 'transfer-encoding': 'chunked', server: 'Windows-Azure-Queue/1.0 Microsoft-HTTPAPI/2.0', 'x-ms-request-id': '152019d0-2e7d-4582-8e35-6d54453c5b4e', 'x-ms-version': '2014-02-14', date: 'Wed, 02 Jul 2014 13:22:13 GMT' }
+
   createQueueService: (message) ->
     getMessagesAsync: simple.stub().resolveWith [
       [

@@ -13,6 +13,6 @@ class JobMessageProcessor extends  MessageProcessor
     options = @_createRequestOptions req
     request options, (err, response) ->
       if err or response?.statusCode >= 400
-        return callback(err or response) if response?.statusCode >= 500 and !lastTry
-        return notificationsApi.fail response, -> callback err or response
+        return callback(retry: true) if (err? or response?.statusCode >= 500) and !lastTry
+        return notificationsApi.fail err or response, -> callback retry: false
       notificationsApi.success response, callback

@@ -72,6 +72,8 @@ describe "MessageFlowBalancer with a JobMessageProcessor", ->
     describe "and failing messages of known exception are retrieved from the queue", ->
       notification = null
       deleteMessage = null
+      putInPoison = null
+
       beforeEach (done) ->
         nockRequest(message.resource, 400, errorMessage)
         mocks.nockGetMessages([ { id: "soyUnId", messageText: message, dequeueCount: 1 } ])
@@ -80,6 +82,7 @@ describe "MessageFlowBalancer with a JobMessageProcessor", ->
           statusCode: 400
           message: JSON.stringify errorMessage
 
+        putInPoison = mocks.nockPutMessage(message)
         deleteMessage = mocks.nockDeleteMessage("soyUnId", done)
 
         messageFlowBalancer.run()
@@ -90,10 +93,14 @@ describe "MessageFlowBalancer with a JobMessageProcessor", ->
       it "should delete the message", ->
         deleteMessage.done()
 
+      it "should put the message in the poison queue", ->
+        putInPoison.done()
+
     describe "and failing messages of unknown exception are retrieved from the queue", ->
       notification = null
       deleteMessage = null
       updateMessage = null
+      putInPoison = null
 
       describe "and the message's dequeueCount is smaller than the maximum allowed", ->
 
@@ -106,6 +113,7 @@ describe "MessageFlowBalancer with a JobMessageProcessor", ->
             statusCode: 500
             message: JSON.stringify errorMessage
 
+          putInPoison = mocks.nockPutMessage(message)
           deleteMessage = mocks.nockDeleteMessage("soyUnId")
           updateMessage = mocks.nockUpdateMessage("soyUnId", done)
 
@@ -116,6 +124,9 @@ describe "MessageFlowBalancer with a JobMessageProcessor", ->
 
         it "should not delete the message", ->
           deleteMessage.isDone().should.eql false
+
+        it "should not put the message in the poison queue", ->
+          putInPoison.isDone().should.eql false
 
         it "should update the message visibilitytimeout", ->
           updateMessage.done()
@@ -130,6 +141,7 @@ describe "MessageFlowBalancer with a JobMessageProcessor", ->
             statusCode: 500
             message: JSON.stringify errorMessage
 
+          putInPoison = mocks.nockPutMessage(message)
           deleteMessage = mocks.nockDeleteMessage("soyUnId", done)
 
           updateMessage = mocks.nockUpdateMessage("soyUnId")
@@ -144,3 +156,77 @@ describe "MessageFlowBalancer with a JobMessageProcessor", ->
 
         it "should not update the message visibilitytimeout", ->
           updateMessage.isDone().should.eql false
+
+        it "should put the message in the poison queue", ->
+          putInPoison.done()
+
+    describe "and the request to the real api fails awfully", ->
+      deleteMessage = null
+      updateMessage = null
+      notification = null
+      putInPoison = null
+
+      describe "and the message's dequeueCount is smaller than the maximum allowed", ->
+
+        beforeEach (done) ->
+          awfulMessage = { message: 'something awful happened', code: 'AWFUL_ERROR' }
+          nock baseApi
+          .get message.resource
+          .replyWithError('')
+
+          mocks.nockGetMessages([ { id: "soyUnId", messageText: message, dequeueCount: 1 } ])
+
+          notification = mocks.expectNotification
+            success: false
+            statusCode: undefined
+            message: JSON.stringify awfulMessage
+
+          putInPoison = mocks.nockPutMessage(message)
+          deleteMessage = mocks.nockDeleteMessage("soyUnId")
+          updateMessage = mocks.nockUpdateMessage("soyUnId", done)
+
+          messageFlowBalancer.run()
+
+        it "should not notify the failure", ->
+          notification.isDone().should.eql false
+
+        it "should not delete the message", ->
+          deleteMessage.isDone().should.eql false
+
+        it "should not put the message in the poison queue", ->
+          putInPoison.isDone().should.eql false
+
+        it "should update the message visibilitytimeout", ->
+          updateMessage.done()
+
+      describe "and the message's dequeueCount is the maximum allowed", ->
+
+        beforeEach (done) ->
+          awfulMessage = { message: 'something awful happened', code: 'AWFUL_ERROR' }
+          nock baseApi
+          .get message.resource
+          .replyWithError awfulMessage
+
+          mocks.nockGetMessages([ { id: "soyUnId", messageText: message, dequeueCount: MAX_DEQUEUE_COUNT } ])
+
+          notification = mocks.expectNotification
+            success: false
+            message: 'something awful happened'
+
+          putInPoison = mocks.nockPutMessage(message)
+          deleteMessage = mocks.nockDeleteMessage("soyUnId", done)
+          updateMessage = mocks.nockUpdateMessage("soyUnId")
+
+          messageFlowBalancer.run()
+
+        it "should notify the failure", ->
+          notification.done()
+
+        it "should delete the message", ->
+          deleteMessage.done()
+
+        it "should not update the message visibilitytimeout", ->
+          updateMessage.isDone().should.eql false
+
+        it "should not put the message in the poison queue", ->
+          putInPoison.done()

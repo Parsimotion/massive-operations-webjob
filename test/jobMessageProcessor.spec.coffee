@@ -53,9 +53,9 @@ describe "JobMessageProcessor", ->
         .get message.resource
         .reply 404, errorMessage       
 
-      it "should call the callback with the error", (done) ->
+      it "should call the callback with retry: false as parameter", (done) ->
         processor.process message, false, (err) ->
-          err.body.should.eql JSON.stringify errorMessage
+          err.retry.should.eql false
           done()
 
       it "should notify the failure to the NotificationsApi", (done) ->
@@ -92,8 +92,8 @@ describe "JobMessageProcessor", ->
         it "should not notify the failure to the NotificationsApi", ->
           failNotification.isDone().should.eql false
 
-        it "should call the callback with the response as parameter", ->
-          error.body.should.eql JSON.stringify errorMessage
+        it "should call the callback with retry: true as parameter", ->
+          error.retry.should.eql true
 
       describe "and it is the last try", ->
         error = null
@@ -105,5 +105,5 @@ describe "JobMessageProcessor", ->
         it "should notify the failure to the NotificationsApi", ->
           failNotification.isDone().should.eql true
 
-        it "should call the callback with the response as parameter", ->
-          error.body.should.eql JSON.stringify errorMessage
+        it "should call the callback with retry: false as parameter", ->
+          error.retry.should.eql false
