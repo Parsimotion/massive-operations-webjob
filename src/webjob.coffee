@@ -2,6 +2,7 @@ azureQueue = require("azure-queue-node")
 Promise = require("bluebird")
 _ = require("lodash")
 chokidar = require("chokidar")
+path = require('path')
 MessageFlowBalancer = require("./messageFlowBalancer")
 MessageProcessor = require("./messageProcessor")
 JobMessageProcessor = require("./jobMessageProcessor")
@@ -28,12 +29,9 @@ module.exports =
     messageFlowBalancer = new MessageFlowBalancer queueClient, processor, options
 
     @createQueueIfNotExists storageName, storageKey, queue
-    .then ->
+    .then () =>
       messageFlowBalancer.run()
-  
-      chokidar.watch('.', { persistent: true, depth: 0 })
-      .on 'add', (path) ->
-        messageFlowBalancer.kill() if process.env.WEBJOBS_SHUTDOWN_FILE.indexOf(path) > -1      
+      @watchForGracefulShutdown messageFlowBalancer
 
 
   createQueueIfNotExists: (storageName, storageKey, queue) ->
@@ -42,5 +40,11 @@ module.exports =
     queueService.createQueueIfNotExistsAsync(queue).then ->
       queueService.createQueueIfNotExistsAsync(queue + '-poison')
 
-
   watchForGracefulShutdown: (messageFlowBalancer) ->
+    fullPathToExpectedFile = process.env.WEBJOBS_SHUTDOWN_FILE
+    folderToWatch = path.dirname fullPathToExpectedFile
+    expectedFilename = path.basename fullPathToExpectedFile
+    chokidar.watch(folderToWatch, { persistent: true, depth: 0 })
+    .on 'add', (fullPath) ->
+      filename = path.basename fullPath
+      messageFlowBalancer.kill() if filename is expectedFilename
