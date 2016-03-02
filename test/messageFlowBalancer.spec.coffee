@@ -24,8 +24,6 @@ MAX_DEQUEUE_COUNT = 5
 
 processor = new JobMessageProcessor baseApi
 
-messageFlowBalancer = new MessageFlowBalancer queueClient, processor, { queue: "jobs", maxDequeueCount: MAX_DEQUEUE_COUNT }
-
 nockRequest = (resource, statusCode, body, done = ->) ->
   nock baseApi
   .get resource
@@ -34,6 +32,10 @@ nockRequest = (resource, statusCode, body, done = ->) ->
     body
 
 describe "MessageFlowBalancer with a JobMessageProcessor", ->
+  messageFlowBalancer = null
+
+  beforeEach ->
+    messageFlowBalancer = new MessageFlowBalancer queueClient, processor, { queue: "jobs", maxDequeueCount: MAX_DEQUEUE_COUNT, maxMessages: 2 }
 
   afterEach ->
     nock.cleanAll()
@@ -43,6 +45,25 @@ describe "MessageFlowBalancer with a JobMessageProcessor", ->
       getMessages = mocks.nockGetMessages [ ], ->
         getMessages.done()
       
+      messageFlowBalancer.run()
+
+    it "should get the messages again after processing", (done) ->
+      nockRequest(message.resource, 200, [ id: 0 ])
+      mocks.nockGetMessages([ { id: "soyUnId", messageText: message, dequeueCount: 1 } ])
+      mocks.expectNotification { success: true, statusCode: 200 }
+      mocks.nockDeleteMessage("soyUnId")
+      again = mocks.nockGetMessages [ { id: "soyUnId", messageText: message, dequeueCount: 1 } ], ->
+        again.done()
+        done()
+      messageFlowBalancer.run()
+
+    it "should not get the messages again after processing if killed was called", (done) ->
+      mocks.nockGetMessages([ { id: "soyUnId", messageText: message, dequeueCount: 1 } ])
+      nockRequest(message.resource, 200, [ id: 0 ], -> messageFlowBalancer.kill())
+      mocks.expectNotification { success: true, statusCode: 200 }
+      mocks.nockDeleteMessage("soyUnId", -> setTimeout done, 1)
+      again = mocks.nockGetMessages [ { id: "soyUnId", messageText: message, dequeueCount: 1 } ], ->
+        throw "should not be called"
       messageFlowBalancer.run()
 
     describe "and succeeding messages are retrieved from the queue", ->

@@ -9,11 +9,15 @@ class MessageFlowBalancer
 
   constructor: (@queueClient, @messageProcessor, @options) ->
     { @queue, @baseUrl, @maxMessages, @maxDequeueCount, @concurrency } = @options
+    @killed = false
+    @q = async.queue @_getWorker(), @concurrency
+
+  kill: =>
+    @killed = true
+    @q.kill()
 
   run: =>
     console.log "running..."
-    worker = @_getWorker()
-    q = async.queue worker, @concurrency
     gettingMessages = null
 
     getMessages = =>
@@ -21,9 +25,10 @@ class MessageFlowBalancer
       @_getMessages 0, (messages) =>
         gettingMessages = false
         messages.forEach (message) =>
-          q.push message, (err) =>
+          @q.push message, (err) =>
+            console.log "#{ @q.running() } tasks still running..." if @killed
             reorderpoint = Math.ceil @maxMessages / 2 
-            getMessages() if q.length() <= reorderpoint and gettingMessages is false
+            getMessages() if @q.length() <= reorderpoint and gettingMessages is false and not @killed
 
     getMessages()
 
@@ -35,8 +40,6 @@ class MessageFlowBalancer
       return @_deleteMessage message, callback if not err?
       return @_releaseMessage(message, callback) if err.retry
       @_moveToPoison(message, callback)
-      
-      
 
   _moveToPoison: (message, callback) =>
     @queueClient.putMessage @queue + "-poison", message.messageText, =>

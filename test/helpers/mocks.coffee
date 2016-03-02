@@ -49,7 +49,7 @@ module.exports =
       """
 
     nock("http://storage.queue.core.windows.net")
-    .get("/jobs/messages")
+    .get("/jobs/messages?numofmessages=2")
     .once()
     .reply 200, response, { 'cache-control': 'no-cache', 'transfer-encoding': 'chunked', 'content-type': 'application/xml', server: 'Windows-Azure-Queue/1.0 Microsoft-HTTPAPI/2.0', 'x-ms-request-id': '51e22df0-d77a-4c04-a5f9-0a8a0f885ca4', 'x-ms-version': '2014-02-14', date: 'Thu, 03 Jul 2014 08:54:49 GMT' }
 
