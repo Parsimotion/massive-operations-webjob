@@ -1,6 +1,7 @@
 azureQueue = require("azure-queue-node")
 Promise = require("bluebird")
 _ = require("lodash")
+chokidar = require("chokidar")
 MessageFlowBalancer = require("./messageFlowBalancer")
 MessageProcessor = require("./messageProcessor")
 JobMessageProcessor = require("./jobMessageProcessor")
@@ -11,7 +12,7 @@ module.exports =
   run: (options) ->
     _.defaults options,
       maxMessages: 16
-      visibilityTimeout: 900 #15min
+      visibilityTimeout: 300 #5min
       maxDequeueCount: 5
       concurrency: 50
 
@@ -24,10 +25,15 @@ module.exports =
 
     Processor = if jobsQueue then JobMessageProcessor else MessageProcessor
     processor = new Processor(baseUrl)
+    messageFlowBalancer = new MessageFlowBalancer queueClient, processor, options
 
     @createQueueIfNotExists storageName, storageKey, queue
     .then ->
-      new MessageFlowBalancer(queueClient, processor, options).run()
+      messageFlowBalancer.run()
+  
+      chokidar.watch('.', { persistent: true, depth: 0 })
+      .on 'add', (path) ->
+        messageFlowBalancer.kill() if process.env.WEBJOBS_SHUTDOWN_FILE.indexOf(path) > -1      
 
 
   createQueueIfNotExists: (storageName, storageKey, queue) ->
@@ -37,3 +43,4 @@ module.exports =
       queueService.createQueueIfNotExistsAsync(queue + '-poison')
 
 
+  watchForGracefulShutdown: (messageFlowBalancer) ->

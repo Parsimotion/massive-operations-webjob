@@ -12,6 +12,7 @@
     "azure-queue-node": "^1.1.0",
     "azure-storage": "~0.6.0",
     "bluebird": "~2.10.1",
+    "chokidar": "^1.4.3",
     "coffee-script": "^1.8.0",
     "include": "^0.1.2",
     "lodash": "^3.6.0",
