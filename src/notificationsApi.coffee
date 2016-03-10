@@ -1,9 +1,9 @@
 baseApi = require('./config').notificationsApiUrl
-request = require('request')
+request = require('requestretry')
 
 module.exports =
   class NotificationsApi
-    constructor: (@jobId, @accessToken) ->
+    constructor: (@jobId, @accessToken, @retryDelay = 1000) ->
 
     success: (response, callback) =>
       @_makeRequest {
@@ -20,8 +20,9 @@ module.exports =
 
     _makeRequest: (body, callback) =>
       requestMessage =
+        retryDelay: @retryDelay
         method: "POST"
-        uri: baseApi + "/jobs/#{@jobId}/operations"
+        url: baseApi + "/jobs/#{@jobId}/operations"
         headers:
           'content-type': 'application/json'
           'Authorization': @accessToken
