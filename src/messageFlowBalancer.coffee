@@ -49,7 +49,7 @@ class MessageFlowBalancer
     @queueClient.deleteMessage @queue, message.messageId, message.popReceipt, callback
 
   _releaseMessage: (message, callback) =>
-    @queueClient.updateMessage @queue, message.messageId, message.popReceipt, 1, message.messageText, callback    
+    @queueClient.updateMessage @queue, message.messageId, message.popReceipt, 5, message.messageText, callback    
 
   _getMessages: (timeout, callback) =>
     retrieve = =>

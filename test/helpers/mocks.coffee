@@ -69,7 +69,7 @@ module.exports =
       ""
 
     nock("http://storage.queue.core.windows.net")
-    .put("/jobs/messages/#{messageId}?popreceipt=sK52prNk0QgBAAAA&visibilitytimeout=1")
+    .put("/jobs/messages/#{messageId}?popreceipt=sK52prNk0QgBAAAA&visibilitytimeout=5")
     .reply 204, response, { 'content-length': '0', server: 'Windows-Azure-Queue/1.0 Microsoft-HTTPAPI/2.0', 'x-ms-request-id': 'e1a50159-d947-4f43-af48-d944cf6a9661', 'x-ms-version': '2014-02-14', 'x-ms-popreceipt': 'DKtBR2tl0QgBAAAA', 'x-ms-time-next-visible': 'Fri, 04 Jul 2014 06:49:46 GMT', date: 'Fri, 04 Jul 2014 06:39:46 GMT' }
 
   nockPutMessage: (message, done = ->) ->
