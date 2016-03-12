@@ -9,7 +9,7 @@ class MessageProcessor
   process: (req, lastTry, callback) =>
     options = @_createRequestOptions req
     request options, (err, response) =>
-      return callback(retry: !lastTry) if err? or response?.statusCode >= 400
+      return callback(retry: !lastTry) if err? or @_retryableCode response
       callback()
 
   _createRequestOptions: (req) ->
@@ -18,3 +18,7 @@ class MessageProcessor
     headers: _.omit req.headers, "host"
     body: req.body
     resolveWithFullResponse: true
+
+  _retryableCode: (response) ->
+    code = response?.statusCode
+    code == 409 or code >= 500

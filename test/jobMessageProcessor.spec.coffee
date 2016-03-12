@@ -107,3 +107,28 @@ describe "JobMessageProcessor", ->
 
         it "should call the callback with retry: false as parameter", ->
           error.retry.should.eql false
+
+    describe "and request response fail with with a code 409 and it ain't the last try", ->
+      errorMessage = error: "Conflict please retry"
+      failNotification = null
+      error = null
+
+      beforeEach (done) ->
+        nock baseApi
+        .get message.resource
+        .reply 409, errorMessage
+
+        failNotification = mocks.expectNotification
+          success: false
+          statusCode: 409
+          message: JSON.stringify errorMessage
+
+        processor.process message, false, (err) ->
+          error = err
+          done()
+
+      it "should not notify the failure to the NotificationsApi", ->
+        failNotification.isDone().should.eql false
+
+      it "should call the callback with retry: true as parameter", ->
+        error.retry.should.eql true
